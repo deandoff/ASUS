@@ -1,9 +1,17 @@
 from PySide6.QtCore import Qt, QDate, QTime
 from PySide6.QtWidgets import (
     QApplication, QDialog, QVBoxLayout, QLineEdit, QDateEdit,
+    QTimeEdit, QFormLayout, QStackedWidget,
+    QCheckBox, QPushButton, QLabel, QComboBox, QTextEdit, QHBoxLayout, QWidget, QMainWindow, QTableWidget,
+    QHeaderView, QTableWidgetItem, QMenuBar, QMenu, QWidgetAction, QMessageBox, QListWidget
+)
+
+
+from PySide6.QtCore import Qt, QDate, QTime
+from PySide6.QtWidgets import (
+    QApplication, QDialog, QVBoxLayout, QLineEdit, QDateEdit,
     QTimeEdit, QFormLayout, QDialogButtonBox, QStackedWidget,
-    QCheckBox, QPushButton, QLabel, QComboBox, QTextEdit, QHBoxLayout, QFileDialog, QWidget, QMainWindow, QTableWidget,
-    QHeaderView, QTableWidgetItem, QGridLayout, QMenuBar, QMenu, QWidgetAction, QMessageBox
+    QCheckBox, QPushButton, QLabel, QComboBox, QTextEdit, QHBoxLayout, QWidget, QMainWindow, QFileDialog, QListWidget
 )
 
 
@@ -20,7 +28,6 @@ class CreateMeetingWizard(QDialog):
         # Основной виджет с несколькими страницами
         self.stacked_widget = QStackedWidget()
         self.create_main_page()
-        self.create_additional_participants_page()
         self.create_topics_page()
         self.create_summary_page()  # Создаём последнюю страницу сразу
 
@@ -60,8 +67,9 @@ class CreateMeetingWizard(QDialog):
         self.duration_input = QLineEdit()
         layout.addRow("Длительность (ч):", self.duration_input)
 
-        self.participants_input = QComboBox()
-        self.participants_input.setEditable(True)  # Для поиска
+        # Заменяем QComboBox на QListWidget для множественного выбора участников
+        self.participants_input = QListWidget()
+        self.participants_input.setSelectionMode(QListWidget.MultiSelection)  # Множественный выбор
         self.participants_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])  # Пример данных
         layout.addRow("Участники:", self.participants_input)
 
@@ -76,18 +84,20 @@ class CreateMeetingWizard(QDialog):
         layout = QFormLayout(self.additional_page)
 
         self.chairperson_input = QComboBox()
-        self.chairperson_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
+        self.chairperson_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
         layout.addRow("Председатель:", self.chairperson_input)
 
         self.secretary_input = QComboBox()
-        self.secretary_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
+        self.secretary_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
         layout.addRow("Секретарь:", self.secretary_input)
 
         self.controller_input = QComboBox()
-        self.controller_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
+        self.controller_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
         layout.addRow("Контролёр:", self.controller_input)
 
-        self.external_participants_input = QTextEdit()
+        self.external_participants_input = QListWidget()
+        self.external_participants_input.setSelectionMode(QListWidget.MultiSelection)
+        self.external_participants_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
         layout.addRow("Внешние участники:", self.external_participants_input)
 
         self.stacked_widget.addWidget(self.additional_page)
@@ -100,6 +110,11 @@ class CreateMeetingWizard(QDialog):
         self.topics_input = QTextEdit()
         layout.addWidget(QLabel("Вопросы совещания:"))
         layout.addWidget(self.topics_input)
+
+        # Кнопка для добавления вопроса
+        self.add_question_button = QPushButton("Добавить вопрос")
+        self.add_question_button.clicked.connect(self.add_question)
+        layout.addWidget(self.add_question_button)
 
         self.stacked_widget.addWidget(self.topics_page)
 
@@ -118,10 +133,20 @@ class CreateMeetingWizard(QDialog):
 
         self.stacked_widget.addWidget(self.summary_page)
 
+    def add_question(self):
+        """Открывает окно для добавления вопроса."""
+        dialog = AddQuestionDialog(self)  # Создаём окно для добавления вопроса
+        if dialog.exec() == QDialog.Accepted:
+            question = dialog.get_question_data()  # Получаем данные о вопросе
+            self.topics_input.append(f"\tВопрос: {question['text']}\n\tОтветчик: {question['responder']}\n\tПрикреплённые файлы: {question['files']}\n")
+
     def next_page(self):
+        if self.additional_participants_checkbox.isChecked():
+            self.create_additional_participants_page()
         """Перейти на следующую страницу."""
         if self.current_page < self.stacked_widget.count() - 1:
             self.current_page += 1
+
             self.stacked_widget.setCurrentIndex(self.current_page)
             self.back_button.setEnabled(True)
 
@@ -135,25 +160,24 @@ class CreateMeetingWizard(QDialog):
 
     def populate_summary_page(self):
         """Заполнить страницу информации данными о совещании."""
+        participants = ", ".join([item.text() for item in self.participants_input.selectedItems()])  # Множественный выбор
+
         summary = f"""
         Тема: {self.topic_input.text()}
         Дата: {self.date_input.date().toString("dd.MM.yyyy")}
         Время: {self.time_input.time().toString("HH:mm")}
         Длительность: {self.duration_input.text()} ч.
-        Участники: {self.participants_input.currentText()}
+        Участники: {participants}
+        Повестки совещания:\n {self.topics_input.toPlainText()}
         Дополнительные участники: {"Да" if self.additional_participants_checkbox.isChecked() else "Нет"}
         """
-        if self.additional_participants_checkbox.isChecked():
+        if self.additional_participants_checkbox.isChecked() and self.external_participants_input:
             summary += f"""
             Председатель: {self.chairperson_input.currentText()}
             Секретарь: {self.secretary_input.currentText()}
             Контролёр: {self.controller_input.currentText()}
-            Внешние участники: {self.external_participants_input.toPlainText()}
+            Внешние участники: {', '.join([item.text() for item in self.external_participants_input.selectedItems()])}
             """
-
-        summary += f"""
-        Вопросы совещания: {self.topics_input.toPlainText()}
-        """
 
         self.summary_text.setText(summary)
 
@@ -177,7 +201,7 @@ class CreateMeetingWizard(QDialog):
             "time": self.time_input.time().hour(),
             "duration": int(self.duration_input.text()) if self.duration_input.text().isdigit() else 1,
             "description": self.topics_input.toPlainText(),
-            "participants": self.participants_input.currentText(),
+            "participants": [item.text() for item in self.participants_input.selectedItems()],  # Список участников
             "additional": {
                 "chairperson": self.chairperson_input.currentText(),
                 "secretary": self.secretary_input.currentText(),
@@ -186,6 +210,60 @@ class CreateMeetingWizard(QDialog):
             } if self.additional_participants_checkbox.isChecked() else None
         }
         super().accept()
+
+
+class AddQuestionDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Добавить вопрос")
+
+        layout = QVBoxLayout(self)
+
+        # Вопрос
+        self.question_input = QLineEdit(self)
+        self.question_input.setPlaceholderText("Введите вопрос")
+        layout.addWidget(QLabel("Вопрос:"))
+        layout.addWidget(self.question_input)
+
+        # Ответчик
+        self.responder_input = QComboBox(self)
+        self.responder_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
+        layout.addWidget(QLabel("Ответчик:"))
+        layout.addWidget(self.responder_input)
+
+        # Прикрепление файлов
+        self.files_input = QPushButton("Прикрепить файлы")
+        self.files_input.clicked.connect(self.attach_files)
+        layout.addWidget(self.files_input)
+
+        # Кнопки
+        button_layout = QHBoxLayout()
+        self.accept_button = QPushButton("Добавить")
+        self.accept_button.clicked.connect(self.accept)
+        button_layout.addWidget(self.accept_button)
+
+        self.cancel_button = QPushButton("Отмена")
+        self.cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(self.cancel_button)
+
+        layout.addLayout(button_layout)
+
+        self.selected_files = []  # Список выбранных файлов
+
+    def attach_files(self):
+        """Открыть диалоговое окно для выбора файлов."""
+        files, _ = QFileDialog.getOpenFileNames(self, "Выберите файлы")
+        if files:
+            self.selected_files.extend(files)
+
+    def get_question_data(self):
+        """Получить введенные данные о вопросе."""
+        return {
+            "text": self.question_input.text(),
+            "responder": self.responder_input.currentText(),
+            "files": ", ".join(self.selected_files),
+        }
+
 
 
 class CalendarWindow(QMainWindow):
