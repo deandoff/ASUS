@@ -34,6 +34,7 @@ class LoginWindow(QMainWindow):
         self.input_username.setAlignment(Qt.AlignCenter)
         self.input_username.setStyleSheet('''font-family: Roboto Slab; 
                                                font-size: 17px;
+                                               color: black;
                                                border: 2px solid black;
                                                border-radius: 10px;
                                                padding: 5px;
@@ -48,6 +49,7 @@ class LoginWindow(QMainWindow):
         self.input_password.setAlignment(Qt.AlignCenter)
         self.input_password.setStyleSheet('''font-family: Roboto Slab; 
                                                font-size: 17px;
+                                               color: black;
                                                border: 2px solid black;
                                                border-radius: 10px;
                                                padding: 5px;
