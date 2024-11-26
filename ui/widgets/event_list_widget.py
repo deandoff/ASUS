@@ -1,21 +1,20 @@
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton
-)
-from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton
+from PySide6.QtCore import QSize, Qt
 
 
 class EventListWidget(QWidget):
     def __init__(self, events, parent=None):
         super().__init__(parent)
 
-        # Сохранение данных о мероприятиях
         self.events = events
 
-        # Основной макет виджета
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Список мероприятий
+        self.title_label = QLabel(self)
+        self.title_label.setText("Ближайшие совещания")
+        self.layout.addWidget(self.title_label)
+
         self.events_list = QListWidget()
         self.events_list.itemClicked.connect(self.show_event_details)
         self.events_list.setStyleSheet("""
@@ -44,39 +43,40 @@ class EventListWidget(QWidget):
         self.populate_events()
         self.layout.addWidget(self.events_list)
 
-        # Кнопка для открытия полного списка мероприятий
         self.btn_all_events = QPushButton("Все мероприятия")
         self.btn_all_events.clicked.connect(self.show_all_events)
         self.layout.addWidget(self.btn_all_events)
 
     def populate_events(self):
-        """Создает элементы списка мероприятий."""
-        self.events_list.clear()  # Очистка старых элементов
-        for index, event in enumerate(self.events[:4]):
-            # Создаем виджет для элемента
+        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.events_list.clear()
+
+        window_height = self.height()
+        item_height = 140
+        visible_items_count = int(window_height // item_height)
+
+        events_to_display = self.events[:visible_items_count]
+
+        for event in events_to_display:
             item_widget = QWidget()
             item_layout = QVBoxLayout()
             item_layout.setContentsMargins(10, 10, 10, 10)
 
-            # Верхняя строка: Дата мероприятия
-            date_label = QLabel(f"<b>{event['Дата']}</b>")
+            date_label = QLabel(f"<b>{event['date']}</b>")
             date_label.setStyleSheet("color: #6c757d; font-size: 14px;")
             item_layout.addWidget(date_label)
 
-            # Средняя строка: Название мероприятия
-            title_label = QLabel(event["Тема"])
+            title_label = QLabel(event["title"])
             title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #212529;")
             item_layout.addWidget(title_label)
 
-            # Нижняя строка: Время мероприятия
-            time_label = QLabel(event["Время"])
+            time_label = QLabel(f"<b>{event['time']}</b>")
             time_label.setStyleSheet("color: #495057; font-size: 14px;")
             item_layout.addWidget(time_label)
 
-            # Применение макета к виджету
             item_widget.setLayout(item_layout)
 
-            # Упаковка виджета в QListWidgetItem
             list_item = QListWidgetItem()
             list_item.setSizeHint(item_widget.sizeHint() + QSize(0, 35))
 
@@ -84,9 +84,34 @@ class EventListWidget(QWidget):
             self.events_list.setItemWidget(list_item, item_widget)
 
     def show_all_events(self):
-        """Открывает окно с полным списком мероприятий."""
-        print("Показать все мероприятия.")
+        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.events_list.clear()
+
+        for event in self.events:
+            item_widget = QWidget()
+            item_layout = QVBoxLayout()
+            item_layout.setContentsMargins(10, 10, 10, 10)
+
+            date_label = QLabel(f"<b>{event['date']}</b>")
+            date_label.setStyleSheet("color: #6c757d; font-size: 14px;")
+            item_layout.addWidget(date_label)
+
+            title_label = QLabel(event["title"])
+            title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #212529;")
+            item_layout.addWidget(title_label)
+
+            time_label = QLabel(event["time"])
+            time_label.setStyleSheet("color: #495057; font-size: 14px;")
+            item_layout.addWidget(time_label)
+
+            item_widget.setLayout(item_layout)
+
+            list_item = QListWidgetItem()
+            list_item.setSizeHint(item_widget.sizeHint() + QSize(0, 35))
+
+            self.events_list.addItem(list_item)
+            self.events_list.setItemWidget(list_item, item_widget)
 
     def show_event_details(self, item):
         """Показывает детали мероприятия при выборе элемента."""
-        print("Детальная информация о мероприятии.")
+        pass

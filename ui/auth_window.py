@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPus
     QMessageBox
 from PySide6.QtCore import Qt
 
-from ui.main_window import MainAppWindow
+from trash.main_window import MainAppWindow
 
 
 class LoginWindow(QMainWindow):
