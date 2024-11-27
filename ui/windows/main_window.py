@@ -34,12 +34,3 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(tabs)
 
-
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.resize(800, 600)  # Устанавливаем размер окна
-    window.show()
-    app.exec()
