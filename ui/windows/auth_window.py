@@ -2,7 +2,6 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPus
     QMessageBox
 from PySide6.QtCore import Qt
 
-from trash.main_window import MainAppWindow
 from ui.windows.main_window import MainWindow
 
 

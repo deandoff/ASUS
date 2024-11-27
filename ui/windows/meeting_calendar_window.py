@@ -55,7 +55,7 @@ class CalendarWidget(QWidget):
         self.update_headers()
 
         self.table.setVerticalHeaderLabels(
-            [f"{hour:02}:{minute:02}" for hour in range(24) for minute in (0, 15, 30, 45)]
+            [f"{hour:02}:00" if minute == 0 else "" for hour in range(24) for minute in (0, 15, 30, 45)]
         )
 
         # Растяжение заголовков
@@ -104,8 +104,11 @@ class CalendarWidget(QWidget):
         start_row = start_hour * 4 + (start_minute // 15)
 
         # Длительность в часах
-        duration = meeting["duration"]
-        duration_rows = int(duration * 4)  # Каждый час — это 4 строки
+        duration_str = meeting["duration"]  # Ожидается строка в формате "часы:минуты"
+        duration_hours, duration_minutes = map(int, duration_str.split(":"))
+
+        # Переводим длительность в строки таблицы
+        duration_rows = (duration_hours * 60 + duration_minutes) // 15  # Округляем в 15-минутные интервалы
 
         # Создаем объединение ячеек для совещания
         self.table.setSpan(start_row, day_column, duration_rows, 1)

@@ -1,7 +1,7 @@
 from PySide6.QtCore import QDate, QTime
 from PySide6.QtWidgets import (
     QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget,
-    QLineEdit, QDateEdit, QTimeEdit, QListWidget, QCheckBox, QComboBox, QTextEdit, QLabel
+    QLineEdit, QDateEdit, QTimeEdit, QListWidget, QCheckBox, QComboBox, QTextEdit, QLabel, QMessageBox
 )
 
 from ui.support.searchable_multi_select import SearchableMultiSelect
@@ -41,6 +41,14 @@ class CreateMeetingWizard(QDialog):
         button_layout.addWidget(self.next_button)
         layout.addLayout(button_layout)
 
+    def on_time_changed(self, time):
+        """Автоматическая корректировка времени на ближайшее кратное 15 минутам (в меньшую сторону)."""
+        if time.minute() % 15 != 0:
+            # Округляем вниз к ближайшему кратному 15 минутам
+            minutes = (time.minute() // 15) * 15  # Округляем в меньшую сторону
+            corrected_time = QTime(time.hour(), minutes)
+            self.time_input.setTime(corrected_time)  # Устанавливаем откорректированное время
+
     def create_main_page(self):
         self.main_page = QWidget()
         layout = QFormLayout(self.main_page)
@@ -50,17 +58,19 @@ class CreateMeetingWizard(QDialog):
 
         self.date_input = QDateEdit()
         self.date_input.setCalendarPopup(True)
+        self.date_input.setMinimumDate(QDate.currentDate())
         self.date_input.setDate(QDate.currentDate())
         layout.addRow("Дата:", self.date_input)
 
         self.time_input = QTimeEdit()
         self.time_input.setTime(QTime.currentTime())
+        self.time_input.timeChanged.connect(self.on_time_changed)
+
         layout.addRow("Время:", self.time_input)
 
         # Выпадающий список для выбора длительности
-        self.duration_input = QComboBox()
-        self.duration_input.setEditable(False)
-        self.populate_duration_options()
+        self.duration_input = QTimeEdit()
+        self.duration_input.timeChanged.connect(self.on_duration_changed)
         layout.addRow("Длительность (ч):", self.duration_input)
 
         self.participants_input = SearchableMultiSelect(
@@ -74,11 +84,18 @@ class CreateMeetingWizard(QDialog):
 
         self.stacked_widget.addWidget(self.main_page)
 
-    def populate_duration_options(self):
-        """Добавление опций длительности в выпадающий список."""
-        durations = [0.25, 0.5, 0.75] + list(range(1, 9))  # Шаг 15 минут, затем полные часы
-        for duration in durations:
-            self.duration_input.addItem(f"{duration:.2f}")
+    def on_duration_changed(self, time):
+        """Автоматическая корректировка длительности на ближайшее кратное 15 минутам."""
+        # Получаем текущие минуты
+        minutes = time.minute()
+
+        # Вычисляем кратное 15 минутам
+        corrected_minutes = (minutes // 15) * 15  # Округляем в меньшую сторону
+
+        # Если минуты не равны текущим, обновляем время
+        if corrected_minutes != minutes:
+            corrected_time = QTime(time.hour(), corrected_minutes)
+            self.duration_input.setTime(corrected_time)  # Устанавливаем исправленное время
 
     def previous_page(self):
         if self.current_page > 0:
@@ -162,6 +179,24 @@ class CreateMeetingWizard(QDialog):
         self.stacked_widget.addWidget(self.summary_page)
 
     def next_page(self):
+
+        if not self.topic_input.text():  # Проверка на пустую тему
+            error_window = QMessageBox()
+            error_window.setWindowTitle("Ошибка")
+            error_window.setText("Введите тему совещания")
+            error_window.setStandardButtons(QMessageBox.Ok)
+            error_window.exec_()
+            return
+
+        if self.time_input.time() < QTime.currentTime() and self.date_input.date() == QDate.currentDate():
+            error_window = QMessageBox()
+            error_window.setWindowTitle("Ошибка")
+            error_window.setText("Ввыберите корректное время")
+            error_window.setStandardButtons(QMessageBox.Ok)
+            error_window.exec_()
+            return
+
+
         if self.current_page < self.stacked_widget.count() - 1:
             self.current_page += 1
             self.stacked_widget.setCurrentIndex(self.current_page)
@@ -176,7 +211,7 @@ class CreateMeetingWizard(QDialog):
                 self.next_button.setText("Далее")
 
     def accept(self):
-        duration = float(self.duration_input.currentText())
+        duration = self.duration_input.time().toString("HH:mm")
         self.meeting_data = {
             "title": self.topic_input.text(),
             "date": self.date_input.date().toString("dd.MM.yyyy"),
@@ -193,7 +228,7 @@ class CreateMeetingWizard(QDialog):
             Тема: {self.topic_input.text()}
             Дата: {self.date_input.date().toString("dd.MM.yyyy")}
             Время: {self.time_input.time().toString("HH:mm")}
-            Длительность: {self.duration_input.currentText()} ч.
+            Длительность: {self.duration_input.time().toString("HH:mm")} ч.
             Участники: {participants}
         """
         self.summary_text.setText(summary)
