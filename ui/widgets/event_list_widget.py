@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer, QTime, QDate
+from plyer import notification
 
 
 class EventListWidget(QWidget):
@@ -7,6 +8,9 @@ class EventListWidget(QWidget):
         super().__init__(parent)
 
         self.events = events
+        self.upcoming_event_timer = QTimer(self)  # Таймер для уведомлений
+        self.upcoming_event_timer.timeout.connect(self.check_upcoming_events)
+        self.upcoming_event_timer.start(10000)  # Проверяем каждые 60 секунд
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -46,6 +50,30 @@ class EventListWidget(QWidget):
         self.btn_all_events = QPushButton("Все мероприятия")
         self.btn_all_events.clicked.connect(self.show_all_events)
         self.layout.addWidget(self.btn_all_events)
+
+    def check_upcoming_events(self):
+        """Проверяет и уведомляет о ближайших событиях."""
+        today = QDate.currentDate()
+        now = QTime.currentTime()
+        print(self.events)
+        for event in self.events:
+            event_time = QTime.fromString(event["time"], "HH:mm")
+            event_date = QDate.fromString(event["date"], "dd.MM.yyyy")
+            print(event_date)
+            time_difference = now.secsTo(event_time) // 60  # Разница в минутах
+            print(time_difference)
+
+            # Уведомляем, если событие начинается через 15 минут
+            if event_date == today and 0 <= time_difference <= 15:
+                self.send_notification(event)
+
+    def send_notification(self, event):
+        """Отправляет уведомление через plyer."""
+        notification.notify(
+            title=f"Напоминание: {event['title']}",
+            message=f"Событие начнётся в {event['time']}.",
+            timeout=10  # Уведомление исчезнет через 10 секунд
+        )
 
     def populate_events(self):
         self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
