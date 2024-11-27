@@ -1,16 +1,4 @@
-from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
-    QHeaderView,
-)
-
-
+from PySide6.QtCore import Qt
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QColor, QBrush
 from PySide6.QtWidgets import (

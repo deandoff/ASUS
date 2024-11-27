@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         # Настройка вкладок
         tabs = QTabWidget()
         tabs.setTabPosition(QTabWidget.North)
-        tabs.setMovable(True)
+        tabs.setMovable(False)
 
         # Создание вкладок
         main_tab = MainPageWidget(self.meetings, self.status_bar)
@@ -38,5 +38,31 @@ class MainWindow(QMainWindow):
         tabs.addTab(main_tab, "Главное")
         tabs.addTab(calendar_tab, "Календарь")
         tabs.addTab(AdminPanelWidget(), "Дополнительно")
+
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #F0FFFF;
+                border: 0px;
+            }
+            QTabWidget::pane {
+                border: 0px;
+                background-color: #F0FFFF;
+            }
+            QTabBar::tab {
+                background: #E0FFFF;
+                border-style: solid; /* Устанавливает стиль границы */
+                border-width: 2px; /* Толщина границы */
+                border-color: #808080; /* Цвет границы */
+                padding: 8px;
+                margin: 5px;
+                border-radius: 4px;
+                font-family: Roboto Slab;
+                font-size: 16px;
+            }
+            QTabBar::tab:selected {
+                background: #87CEEB;
+                border-color: #000000;
+            }
+        """)
 
         self.setCentralWidget(tabs)

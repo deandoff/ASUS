@@ -15,19 +15,45 @@ class AdminPanelWidget(QWidget):
         self.add_participant_button = QPushButton("Добавить участника")
         self.add_participant_button.clicked.connect(self.add_participant)
         self.button_layout.addWidget(self.add_participant_button)
+        self.add_participant_button.setStyleSheet('''font-family: Roboto Slab; 
+                                                     font-size: 17px; 
+                                                     color: white; 
+                                                     background-color: black; 
+                                                     border: 2px solid black; 
+                                                     border-radius: 10px; 
+                                                     padding: 5px; 
+                                                     ''')
 
         self.update_the_participant_button = QPushButton("Изменить участника")
         self.update_the_participant_button.clicked.connect(self.update_the_participant)
         self.button_layout.addWidget(self.update_the_participant_button)
+        self.update_the_participant_button.setStyleSheet('''font-family: Roboto Slab; 
+                                                     font-size: 17px; 
+                                                     color: white; 
+                                                     background-color: black; 
+                                                     border: 2px solid black; 
+                                                     border-radius: 10px; 
+                                                     padding: 5px; 
+                                                     ''')
 
-        self.layout.addLayout(self.button_layout, stretch=1)
+        self.layout.addLayout(self.button_layout, stretch=2)
 
         self.form_widget = QStackedWidget()
         self.add_participant_index = 0
 
-        self.layout.addWidget(self.form_widget, stretch=2)
+        self.layout.addWidget(self.form_widget, stretch=5)
 
         self.setLayout(self.layout)
+
+        self.setStyleSheet("""font-family: Roboto Slab; 
+                              font-size: 14px;""")
+        self.form_widget.setStyleSheet("""QLineEdit {background-color: #E0FFFF;
+                border-style: solid; /* Устанавливает стиль границы */
+                border-width: 2px; /* Толщина границы */
+                border-color: #808080; /* Цвет границы */
+                padding: 8px;
+                margin: 5px;
+                border-radius: 4px;}""")
 
     def add_participant(self):
         self.sub_widget = QWidget()
@@ -51,6 +77,14 @@ class AdminPanelWidget(QWidget):
 
         self.save_info_button = QPushButton("Добавить")
         self.save_info_button.clicked.connect(self.save_info)
+        self.save_info_button.setStyleSheet('''font-family: Roboto Slab; 
+                                                     font-size: 17px; 
+                                                     color: white; 
+                                                     background-color: black; 
+                                                     border: 2px solid black; 
+                                                     border-radius: 10px; 
+                                                     padding: 5px; 
+                                                     ''')
         sub_layout.addWidget(self.save_info_button)
 
         self.form_widget.addWidget(self.sub_widget)
@@ -87,6 +121,14 @@ class AdminPanelWidget(QWidget):
         # Кнопка для сохранения изменений
         self.save_changes_button = QPushButton("Сохранить изменения")
         self.save_changes_button.clicked.connect(self.save_changes)
+        self.save_changes_button.setStyleSheet('''font-family: Roboto Slab; 
+                                                     font-size: 17px; 
+                                                     color: white; 
+                                                     background-color: black; 
+                                                     border: 2px solid black; 
+                                                     border-radius: 10px; 
+                                                     padding: 5px; 
+                                                     ''')
         update_layout.addWidget(self.save_changes_button)
 
         # Добавляем виджет в `QStackedWidget` и показываем
