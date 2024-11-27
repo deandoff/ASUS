@@ -1,6 +1,7 @@
 from PySide6.QtCore import QDate, QTime
 from PySide6.QtWidgets import (
-    QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget,
+    QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QDateEdit,
+    QTimeEdit, QCheckBox, QComboBox, QListWidget, QTextEdit, QLabel, QMessageBox,
 )
 
 from ui.support.searchable_multi_select import SearchableMultiSelect
