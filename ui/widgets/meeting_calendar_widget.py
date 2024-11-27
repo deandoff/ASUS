@@ -59,6 +59,26 @@ class CalendarWidget(QWidget):
         # Отображение совещаний в таблице
         self.display_meetings()
 
+        self.setStyleSheet("""
+            /* Общий стиль для фона виджета */
+            QWidget {
+                background-color: #F0FFFF;
+                font-family: "Roboto Slab";
+                font-size: 14px;
+            }
+
+            /* Кнопки навигации */
+            QPushButton {
+                font-family: Roboto Slab; 
+                font-size: 17px; 
+                color: white; 
+                background-color: black; 
+                border: 2px solid black; 
+                border-radius: 10px; 
+                padding: 5px;
+            }
+        """)
+
     def update_headers(self):
         """Обновить заголовки таблицы с датами."""
         headers = []
@@ -102,7 +122,7 @@ class CalendarWidget(QWidget):
         self.table.setSpan(start_row, day_column, duration_rows, 1)
         cell = self.table.item(start_row, day_column)
         cell.setText(meeting["title"])
-        cell.setBackground(QBrush(QColor("lightblue")))
+        cell.setBackground(QColor("lightblue"))
         cell.setForeground(QBrush(QColor("black")))
 
     def update_meetings(self, meetings):

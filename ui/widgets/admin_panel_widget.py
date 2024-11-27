@@ -53,7 +53,15 @@ class AdminPanelWidget(QWidget):
                 border-color: #808080; /* Цвет границы */
                 padding: 8px;
                 margin: 5px;
-                border-radius: 4px;}""")
+                border-radius: 4px;}
+                
+                QComboBox{background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;}""")
 
     def add_participant(self):
         self.sub_widget = QWidget()

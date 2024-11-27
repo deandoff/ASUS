@@ -39,7 +39,7 @@ class EventListWidget(QWidget):
                 font-size: 16px;
             }
             QListWidget::item {
-                background-color: #ffffff;
+                background-color: #E0FFFF;
                 border: 1px solid #e0e0e0;
                 margin: 5px;
                 padding: 10px;

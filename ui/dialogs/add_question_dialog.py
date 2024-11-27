@@ -5,6 +5,7 @@ class AddQuestionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Добавить вопрос")
+        self.setFixedSize(500, 300)
 
         layout = QVBoxLayout(self)
 
@@ -36,6 +37,28 @@ class AddQuestionDialog(QDialog):
         button_layout.addWidget(self.cancel_button)
 
         layout.addLayout(button_layout)
+        self.setStyleSheet(""" QPushButton{font-family: Roboto Slab; 
+                                                     font-size: 17px; 
+                                                     color: white; 
+                                                     background-color: black; 
+                                                     border: 2px solid black; 
+                                                     border-radius: 10px; 
+                                                     padding: 5px;}
+                        QLineEdit {background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;}
+                        
+                        QComboBox{background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;}""")
 
         self.selected_files = []  # Список выбранных файлов
 

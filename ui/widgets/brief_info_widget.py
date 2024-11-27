@@ -16,7 +16,7 @@ class BriefInfoWidget(QWidget):
         self.summary_text = QTextEdit()
         self.summary_text.setFont(QFont('Roboto Slab'))
         self.summary_text.setStyleSheet("""
-            QTextEdit { background-color: #FFFFFF;
+            QTextEdit { background-color: #E0FFFF;
             border-radius: 4px;
             padding: 8px;
             border-style: solid;

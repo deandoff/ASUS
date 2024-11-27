@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 
 from ui.widgets.main_page_widget import MainPageWidget
 from ui.widgets.admin_panel_widget import AdminPanelWidget
-from ui.windows.meeting_calendar_window import CalendarWidget
+from ui.widgets.meeting_calendar_widget import CalendarWidget
 
 
 class MainWindow(QMainWindow):

@@ -1,4 +1,5 @@
 from PySide6.QtCore import QDate, QTime
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QDateEdit,
     QTimeEdit, QCheckBox, QComboBox, QListWidget, QTextEdit, QLabel, QMessageBox,
@@ -13,8 +14,8 @@ class CreateMeetingWizard(QDialog):
         super().__init__()
 
         self.setWindowTitle('Новое совещание')
-        self.setGeometry(300, 200, 600, 500)
-        self.setFixedSize(600, 500)
+        self.setGeometry(300, 200, 700, 600)
+        self.setFixedSize(700, 600)
 
         self.current_page = 0
         self.meeting_data = {}
@@ -29,10 +30,24 @@ class CreateMeetingWizard(QDialog):
 
         self.back_button = QPushButton("Назад")
         self.back_button.clicked.connect(self.previous_page)
+        self.back_button.setStyleSheet("""font-family: Roboto Slab; 
+                        font-size: 17px; 
+                        color: white; 
+                        background-color: black; 
+                        border: 2px solid black; 
+                        border-radius: 10px; 
+                        padding: 5px;""")
         self.back_button.setEnabled(False)
 
         self.next_button = QPushButton("Далее")
         self.next_button.clicked.connect(self.next_page)
+        self.next_button.setStyleSheet("""font-family: Roboto Slab; 
+                                font-size: 17px; 
+                                color: white; 
+                                background-color: black; 
+                                border: 2px solid black; 
+                                border-radius: 10px; 
+                                padding: 5px;""")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.stacked_widget)
@@ -40,6 +55,33 @@ class CreateMeetingWizard(QDialog):
         button_layout.addWidget(self.back_button)
         button_layout.addWidget(self.next_button)
         layout.addLayout(button_layout)
+
+        self.setStyleSheet("""font-family: Roboto Slab; 
+                                      font-size: 14px;
+                                      background-color: #F0FFFF;""")
+        self.stacked_widget.setStyleSheet("""QLineEdit {background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;}
+                        
+                        QDateEdit {background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;}
+                        
+                        QTimeEdit {background-color: #E0FFFF;
+                        border-style: solid; /* Устанавливает стиль границы */
+                        border-width: 2px; /* Толщина границы */
+                        border-color: #808080; /* Цвет границы */
+                        padding: 8px;
+                        margin: 5px;
+                        border-radius: 4px;} """)
 
     def on_time_changed(self, time):
         """Автоматическая корректировка времени на ближайшее кратное 15 минутам (в меньшую сторону)."""
@@ -157,12 +199,20 @@ class CreateMeetingWizard(QDialog):
         layout = QVBoxLayout(self.topics_page)
 
         self.topics_input = QTextEdit()
+        self.topics_input.setReadOnly(True)
         layout.addWidget(QLabel("Вопросы совещания:"))
         layout.addWidget(self.topics_input)
 
         # Кнопка для добавления вопроса
         self.add_question_button = QPushButton("Добавить вопрос")
         self.add_question_button.clicked.connect(self.add_question)
+        self.add_question_button.setStyleSheet("""font-family: Roboto Slab; 
+                                        font-size: 17px; 
+                                        color: white; 
+                                        background-color: black; 
+                                        border: 2px solid black; 
+                                        border-radius: 10px; 
+                                        padding: 5px;""")
         layout.addWidget(self.add_question_button)
 
         self.stacked_widget.addWidget(self.topics_page)
@@ -180,11 +230,24 @@ class CreateMeetingWizard(QDialog):
 
     def next_page(self):
 
-        if not self.topic_input.text():  # Проверка на пустую тему
+        if not self.topic_input.text():
             error_window = QMessageBox()
             error_window.setWindowTitle("Ошибка")
             error_window.setText("Введите тему совещания")
             error_window.setStandardButtons(QMessageBox.Ok)
+            error_window.setStyleSheet("""QMessageBox {
+                font-family: Roboto Slab; 
+                font-size: 18px;
+                background-color: #F0FFFF;
+                } 
+                
+                QPushButton {font-family: Roboto Slab; 
+                                        font-size: 17px; 
+                                        color: white; 
+                                        background-color: black; 
+                                        border: 2px solid black; 
+                                        border-radius: 10px; 
+                                        padding: 5px;}""")
             error_window.exec_()
             return
 
@@ -193,9 +256,21 @@ class CreateMeetingWizard(QDialog):
             error_window.setWindowTitle("Ошибка")
             error_window.setText("Ввыберите корректное время")
             error_window.setStandardButtons(QMessageBox.Ok)
+            error_window.setStyleSheet("""QMessageBox {
+                            font-family: Roboto Slab; 
+                            font-size: 18px;
+                            background-color: #F0FFFF;
+                            } 
+
+                            QPushButton {font-family: Roboto Slab; 
+                                                    font-size: 17px; 
+                                                    color: white; 
+                                                    background-color: black; 
+                                                    border: 2px solid black; 
+                                                    border-radius: 10px; 
+                                                    padding: 5px;}""")
             error_window.exec_()
             return
-
 
         if self.current_page < self.stacked_widget.count() - 1:
             self.current_page += 1
