@@ -1,9 +1,6 @@
 from PySide6.QtCore import Qt, QDate, QTime
 from PySide6.QtWidgets import (
-    QApplication, QDialog, QVBoxLayout, QLineEdit, QDateEdit,
-    QTimeEdit, QFormLayout, QStackedWidget,
-    QCheckBox, QPushButton, QLabel, QComboBox, QTextEdit, QHBoxLayout, QWidget, QMainWindow, QTableWidget,
-    QHeaderView, QTableWidgetItem, QMenuBar, QMenu, QWidgetAction, QMessageBox, QListWidget
+    QTableWidget, QHeaderView, QTableWidgetItem, QMenuBar, QMenu, QWidgetAction, QMessageBox, QListWidget
 )
 
 
@@ -354,7 +351,7 @@ class CalendarWindow(QMainWindow):
 
     def show_meeting_info(self, row, col):
         """Отобразить информацию о совещании при клике."""
-        current_date = self.current_week_start.addDays(col)  # Получаем дату по текущему столбцу
+        current_date = self.current_week_start.addDays(col)
         if current_date in self.meetings:
             for meeting in self.meetings[current_date]:
                 if meeting["time"] == row:  # Если время совпадает

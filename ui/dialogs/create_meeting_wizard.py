@@ -188,14 +188,33 @@ class CreateMeetingWizard(QDialog):
         super().accept()
 
     def populate_summary_page(self):
-        participants = ", ".join(self.participants_input.get_selected_items())
+        """Заполнить страницу информации данными о совещании."""
+        participants = ", ".join(self.participants_input.get_selected_items())  # Множественный выбор участников
+
+        # Создаем строку с основной информацией о совещании
         summary = f"""
             Тема: {self.topic_input.text()}
             Дата: {self.date_input.date().toString("dd.MM.yyyy")}
             Время: {self.time_input.time().toString("HH:mm")}
             Длительность: {self.duration_input.currentText()} ч.
             Участники: {participants}
+            Повестка совещания:
+            {self.topics_input.toPlainText()}
+            Дополнительные участники: {"Да" if self.additional_participants_checkbox.isChecked() else "Нет"}
         """
+
+        # Если выбраны дополнительные участники, добавим их информацию
+        if self.additional_participants_checkbox.isChecked() and self.external_participants_input:
+            external_participants = ", ".join(
+                [item.text() for item in self.external_participants_input.selectedItems()])
+            summary += f"""
+                Председатель: {self.chairperson_input.currentText()}
+                Секретарь: {self.secretary_input.currentText()}
+                Контролёр: {self.controller_input.currentText()}
+                Внешние участники: {external_participants}
+            """
+
+        # Устанавливаем итоговый текст в виджет
         self.summary_text.setText(summary)
 
     def add_question(self):
