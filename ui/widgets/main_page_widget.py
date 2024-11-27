@@ -11,6 +11,7 @@ class MainPageWidget(QWidget):
 
         self.meetings = meetings
         self.status_bar = status_bar
+        self.calendar_widget = None  # Ссылка на виджет календаря будет передана из MainWindow
 
         self.layout = QHBoxLayout()
 
@@ -28,23 +29,18 @@ class MainPageWidget(QWidget):
 
         self.setLayout(self.layout)
 
-
-
     def create_meeting(self):
         """Открыть окно для создания совещания."""
         dialog = CreateMeetingWizard()
         if dialog.exec() == QDialog.Accepted:
             meeting = dialog.meeting_data
-            print(meeting)
             self.meetings.append(meeting)
-            print(self.meetings)
 
             # Обновить виджет расписания с новыми данными
             self.events_widget.populate_events()
 
+            # Обновить календарь
+            if self.calendar_widget:
+                self.calendar_widget.update_meetings(self.meetings)
+
             QMessageBox.information(self, "Успех", "Совещание успешно создано!")
-
-    def show_all_meetings(self):
-        """Обработчик для отображения всех совещаний."""
-        pass
-

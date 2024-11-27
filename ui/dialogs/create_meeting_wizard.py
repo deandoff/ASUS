@@ -1,9 +1,12 @@
 from PySide6.QtCore import QDate, QTime
-from PySide6.QtWidgets import QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, \
-    QLineEdit, QDateEdit, QTimeEdit, QListWidget, QCheckBox, QComboBox, QTextEdit, QLabel, QFileDialog
+from PySide6.QtWidgets import (
+    QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget,
+    QLineEdit, QDateEdit, QTimeEdit, QListWidget, QCheckBox, QComboBox, QTextEdit, QLabel
+)
 
 from ui.support.searchable_multi_select import SearchableMultiSelect
 from ui.dialogs.add_question_dialog import AddQuestionDialog
+
 
 class CreateMeetingWizard(QDialog):
     def __init__(self):
@@ -54,10 +57,12 @@ class CreateMeetingWizard(QDialog):
         self.time_input.setTime(QTime.currentTime())
         layout.addRow("Время:", self.time_input)
 
-        self.duration_input = QLineEdit()
+        # Выпадающий список для выбора длительности
+        self.duration_input = QComboBox()
+        self.duration_input.setEditable(False)
+        self.populate_duration_options()
         layout.addRow("Длительность (ч):", self.duration_input)
 
-        self.participants_input = QListWidget()
         self.participants_input = SearchableMultiSelect(
             items=["Иванов И.И.", "Петров П.П.", "Сидоров С.С.", "Александров А.А.", "Викторов В.В."]
         )
@@ -68,6 +73,25 @@ class CreateMeetingWizard(QDialog):
         layout.addRow(self.additional_participants_checkbox)
 
         self.stacked_widget.addWidget(self.main_page)
+
+    def populate_duration_options(self):
+        """Добавление опций длительности в выпадающий список."""
+        durations = [0.25, 0.5, 0.75] + list(range(1, 9))  # Шаг 15 минут, затем полные часы
+        for duration in durations:
+            self.duration_input.addItem(f"{duration:.2f}")
+
+    def previous_page(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.stacked_widget.setCurrentIndex(self.current_page)
+
+            if self.current_page < self.stacked_widget.count() - 1:
+                self.next_button.setText("Далее")
+                self.next_button.clicked.disconnect()
+                self.next_button.clicked.connect(self.next_page)
+
+            if self.current_page == 0:
+                self.back_button.setEnabled(False)
 
     def on_additional_participants_toggled(self, state):
         if state:
@@ -88,15 +112,15 @@ class CreateMeetingWizard(QDialog):
         layout = QFormLayout(self.additional_page)
 
         self.chairperson_input = QComboBox()
-        self.chairperson_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
+        self.chairperson_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
         layout.addRow("Председатель:", self.chairperson_input)
 
         self.secretary_input = QComboBox()
-        self.secretary_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
+        self.secretary_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
         layout.addRow("Секретарь:", self.secretary_input)
 
         self.controller_input = QComboBox()
-        self.controller_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров S.S."])
+        self.controller_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
         layout.addRow("Контролёр:", self.controller_input)
 
         self.external_participants_input = QListWidget()
@@ -137,19 +161,6 @@ class CreateMeetingWizard(QDialog):
 
         self.stacked_widget.addWidget(self.summary_page)
 
-    def previous_page(self):
-        if self.current_page > 0:
-            self.current_page -= 1
-            self.stacked_widget.setCurrentIndex(self.current_page)
-
-            if self.current_page < self.stacked_widget.count() - 1:
-                self.next_button.setText("Далее")
-                self.next_button.clicked.disconnect()
-                self.next_button.clicked.connect(self.next_page)
-
-            if self.current_page == 0:
-                self.back_button.setEnabled(False)
-
     def next_page(self):
         if self.current_page < self.stacked_widget.count() - 1:
             self.current_page += 1
@@ -165,45 +176,26 @@ class CreateMeetingWizard(QDialog):
                 self.next_button.setText("Далее")
 
     def accept(self):
+        duration = float(self.duration_input.currentText())
         self.meeting_data = {
             "title": self.topic_input.text(),
             "date": self.date_input.date().toString("dd.MM.yyyy"),
             "time": self.time_input.time().toString("HH:mm"),
-            "duration": int(self.duration_input.text()) if self.duration_input.text().isdigit() else 1,
+            "duration": duration,  # Сохраняем длительность в формате числа
             "description": self.topics_input.toPlainText(),
-            "participants": self.participants_input.get_selected_items(),  # Используем метод get_selected_items
-            "additional": {
-                "chairperson": self.chairperson_input.currentText() if self.page_was_created else None,
-                "secretary": self.secretary_input.currentText() if self.page_was_created else None,
-                "controller": self.controller_input.currentText() if self.page_was_created else None,
-                "external_participants": [
-                    item.text() for item in self.external_participants_input.selectedItems()
-                ] if self.page_was_created else None
-            } if self.additional_participants_checkbox.isChecked() else None
+            "participants": self.participants_input.get_selected_items(),
         }
         super().accept()
 
     def populate_summary_page(self):
-        participants = ", ".join(
-            [item for item in self.participants_input.get_selected_items()])
-
+        participants = ", ".join(self.participants_input.get_selected_items())
         summary = f"""
-                        Тема: {self.topic_input.text()}
-                        Дата: {self.date_input.date().toString("dd.MM.yyyy")}
-                        Время: {self.time_input.time().toString("HH:mm")}
-                        Длительность: {self.duration_input.text()} ч.
-                        Участники: {participants}
-                        Повестки совещания:\n {self.topics_input.toPlainText()}
-                        Дополнительные участники: {"Да" if self.additional_participants_checkbox.isChecked() else "Нет"}
-                        """
-        if self.additional_participants_checkbox.isChecked() and self.external_participants_input:
-            summary += f"""
-                            Председатель: {self.chairperson_input.currentText()}
-                            Секретарь: {self.secretary_input.currentText()}
-                            Контролёр: {self.controller_input.currentText()}
-                            Внешние участники: {', '.join([item.text() for item in self.external_participants_input.selectedItems()])}
-                            """
-
+            Тема: {self.topic_input.text()}
+            Дата: {self.date_input.date().toString("dd.MM.yyyy")}
+            Время: {self.time_input.time().toString("HH:mm")}
+            Длительность: {self.duration_input.currentText()} ч.
+            Участники: {participants}
+        """
         self.summary_text.setText(summary)
 
     def add_question(self):
@@ -211,4 +203,5 @@ class CreateMeetingWizard(QDialog):
         if dialog.exec() == QDialog.Accepted:
             question = dialog.get_question_data()
             self.topics_input.append(
-                f"\tВопрос: {question['text']}\n\tОтветчик: {question['responder']}\n\tПрикреплённые файлы: {question['files']}\n")
+                f"\tВопрос: {question['text']}\n\tОтветчик: {question['responder']}\n\tПрикреплённые файлы: {question['files']}\n"
+            )
