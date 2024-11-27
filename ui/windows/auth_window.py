@@ -2,7 +2,8 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPus
     QMessageBox
 from PySide6.QtCore import Qt
 
-from ui.main_window import MainAppWindow
+from trash.main_window import MainAppWindow
+from ui.windows.main_window import MainWindow
 
 
 class LoginWindow(QMainWindow):
@@ -34,7 +35,6 @@ class LoginWindow(QMainWindow):
         self.input_username.setAlignment(Qt.AlignCenter)
         self.input_username.setStyleSheet('''font-family: Roboto Slab; 
                                                font-size: 17px;
-                                               color: black;
                                                border: 2px solid black;
                                                border-radius: 10px;
                                                padding: 5px;
@@ -49,7 +49,6 @@ class LoginWindow(QMainWindow):
         self.input_password.setAlignment(Qt.AlignCenter)
         self.input_password.setStyleSheet('''font-family: Roboto Slab; 
                                                font-size: 17px;
-                                               color: black;
                                                border: 2px solid black;
                                                border-radius: 10px;
                                                padding: 5px;
@@ -118,14 +117,5 @@ class LoginWindow(QMainWindow):
             self.input_password.clear()
 
     def open_main_window(self):
-        self.main_window = MainAppWindow()
+        self.main_window = MainWindow()
         self.main_window.show()
-
-
-if __name__ == "__main__":
-    app = QApplication([])
-
-    window = LoginWindow()
-    window.show()
-
-    app.exec()
