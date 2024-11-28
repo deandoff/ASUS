@@ -9,8 +9,10 @@ from ui.windows.meeting_calendar_window import CalendarWidget
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, user_data):
         super().__init__()
+
+        self.user_data = user_data
 
         # Параметры окна
         self.setWindowTitle("Главное окно приложения")
@@ -21,7 +23,7 @@ class MainWindow(QMainWindow):
         self.meetings = []
 
         self.status_bar = self.statusBar()
-        self.status_bar.showMessage("Приложение запущено.")
+        self.status_bar.showMessage(f"Добро пожаловать, {self.user_data['login']}!")
 
         # Настройка вкладок
         tabs = QTabWidget()
@@ -29,7 +31,7 @@ class MainWindow(QMainWindow):
         tabs.setMovable(False)
 
         # Создание вкладок
-        main_tab = MainPageWidget(self.meetings, self.status_bar)
+        main_tab = MainPageWidget(self.meetings, self.status_bar, self.user_data)
         calendar_tab = CalendarWidget(self.meetings)
 
         # Передача ссылки на календарь в MainPageWidget
@@ -37,7 +39,8 @@ class MainWindow(QMainWindow):
 
         tabs.addTab(main_tab, "Главное")
         tabs.addTab(calendar_tab, "Календарь")
-        tabs.addTab(AdminPanelWidget(), "Дополнительно")
+        if user_data['role'] == "ADMIN":
+            tabs.addTab(AdminPanelWidget(), "Дополнительно")
 
         self.setStyleSheet("""
             QMainWindow {

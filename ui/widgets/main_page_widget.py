@@ -6,8 +6,10 @@ from ui.widgets.event_list_widget import EventListWidget
 
 
 class MainPageWidget(QWidget):
-    def __init__(self, meetings, status_bar, parent=None):
+    def __init__(self, meetings, status_bar, user_data, parent=None):
         super(MainPageWidget, self).__init__(parent)
+
+        self.user_data = user_data
 
         self.meetings = meetings
         self.status_bar = status_bar
@@ -30,29 +32,30 @@ class MainPageWidget(QWidget):
         self.main_info_layout.addWidget(self.brief_info)
 
         # Кнопки для создания и изменения совещания
-        self.create_meeting_button = QPushButton("Создать совещание")
-        self.create_meeting_button.clicked.connect(self.create_meeting)
-        self.create_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
-                                             font-size: 17px; 
-                                             color: white; 
-                                             background-color: black; 
-                                             border: 2px solid black; 
-                                             border-radius: 10px; 
-                                             padding: 5px; 
-        """)
-        self.main_info_layout.addWidget(self.create_meeting_button)
+        if user_data['role'] == "ADMIN" or user_data['role'] == "CREATOR":
+            self.create_meeting_button = QPushButton("Создать совещание")
+            self.create_meeting_button.clicked.connect(self.create_meeting)
+            self.create_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
+                                                 font-size: 17px; 
+                                                 color: white; 
+                                                 background-color: black; 
+                                                 border: 2px solid black; 
+                                                 border-radius: 10px; 
+                                                 padding: 5px; 
+            """)
+            self.main_info_layout.addWidget(self.create_meeting_button)
 
-        self.update_meeting_button = QPushButton("Изменить совещание")
-        self.update_meeting_button.clicked.connect(self.update_meeting)
-        self.update_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
-                                                     font-size: 17px; 
-                                                     color: white; 
-                                                     background-color: black; 
-                                                     border: 2px solid black; 
-                                                     border-radius: 10px; 
-                                                     padding: 5px; 
-                """)
-        self.main_info_layout.addWidget(self.update_meeting_button)
+            self.update_meeting_button = QPushButton("Изменить совещание")
+            self.update_meeting_button.clicked.connect(self.update_meeting)
+            self.update_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
+                                                         font-size: 17px; 
+                                                         color: white; 
+                                                         background-color: black; 
+                                                         border: 2px solid black; 
+                                                         border-radius: 10px; 
+                                                         padding: 5px; 
+                    """)
+            self.main_info_layout.addWidget(self.update_meeting_button)
 
         # Добавление основного контейнера с BriefInfo и кнопками в основное окно
         self.layout.addLayout(self.main_info_layout, 2)
@@ -62,7 +65,7 @@ class MainPageWidget(QWidget):
 
     def create_meeting(self):
         """Открыть окно для создания совещания."""
-        dialog = CreateMeetingWizard()
+        dialog = CreateMeetingWizard(self.user_data)
         if dialog.exec() == QDialog.Accepted:
             meeting = dialog.meeting_data
             self.meetings.append(meeting)

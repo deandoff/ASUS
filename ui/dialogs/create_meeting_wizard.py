@@ -1,3 +1,5 @@
+import asyncio
+
 from PySide6.QtCore import QDate, QTime
 from PySide6.QtWidgets import (
     QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QDateEdit,
@@ -7,10 +9,15 @@ from PySide6.QtWidgets import (
 from ui.support.searchable_multi_select import SearchableMultiSelect
 from ui.dialogs.add_question_dialog import AddQuestionDialog
 
+import asyncpg
+from datetime import datetime
+
 
 class CreateMeetingWizard(QDialog):
-    def __init__(self):
+    def __init__(self, user_data):
         super().__init__()
+
+        self.user_data = user_data
 
         self.setWindowTitle('Новое совещание')
         self.setGeometry(300, 200, 600, 500)
@@ -40,6 +47,88 @@ class CreateMeetingWizard(QDialog):
         button_layout.addWidget(self.back_button)
         button_layout.addWidget(self.next_button)
         layout.addLayout(button_layout)
+
+    async def connect_to_db(self):
+        return await asyncpg.connect(
+            user="postgres",
+            password="postgres",
+            database="postgres",
+            host="localhost",
+            port="5432"
+        )
+
+    async def save_meeting_to_db(self):
+        try:
+            conn = await self.connect_to_db()
+
+            async with conn.transaction():
+                # Вставка совещания
+                self.secretary_id = 2
+                meeting_id = await conn.fetchval(
+                    """
+                    INSERT INTO Meetings (creator_id, secretary_id, theme)
+                    VALUES ($1, $2, $3) RETURNING id
+                    """,
+                    self.user_data['id'],
+                    self.secretary_id,
+                    self.meeting_data["title"]
+                )
+
+                # Вставка даты, времени и длительности в Calendar
+                await conn.execute(
+                    """
+                    INSERT INTO Calendar (meeting_id, date, time, duration)
+                    VALUES ($1, $2, $3, $4)
+                    """,
+                    meeting_id,
+                    datetime.strptime(self.meeting_data['date'], "%Y-%m-%d").date(),
+                    datetime.strptime(self.meeting_data['time'], "%H:%M").time(),
+                    datetime.strptime(self.meeting_data['duration'], "%H:%M").time()
+                )
+
+                # # Вставка участников
+                # for participant_id in self.get_participant_ids():
+                #     await conn.execute(
+                #         """
+                #         INSERT INTO Participant (meeting_id, id_from_users)
+                #         VALUES ($1, $2)
+                #         """,
+                #         meeting_id,
+                #         participant_id
+                #     )
+                #
+                # # Вставка дополнительных участников
+                # if self.additional_participants_checkbox.isChecked():
+                #     for guest_id in self.get_guest_ids():
+                #         await conn.execute(
+                #             """
+                #             INSERT INTO Guest (meeting_id, id_from_users)
+                #             VALUES ($1, $2)
+                #             """,
+                #             meeting_id,
+                #             guest_id
+                #         )
+                #
+                # # Вставка вопросов
+                # for question in self.get_questions():
+                #     await conn.execute(
+                #         """
+                #         INSERT INTO Question (meeting_id, question_text, responder_id, file)
+                #         VALUES ($1, $2, $3, $4)
+                #         """,
+                #         meeting_id,
+                #         question["text"],
+                #         question["responder_id"],
+                #         question["file"]
+                #     )
+
+            await conn.close()
+            return True
+
+        except asyncpg.PostgresError as e:
+            print(f"Ошибка базы данных: {e}")
+            return False
+
 
     def on_time_changed(self, time):
         """Автоматическая корректировка времени на ближайшее кратное 15 минутам (в меньшую сторону)."""
@@ -214,13 +303,23 @@ class CreateMeetingWizard(QDialog):
         duration = self.duration_input.time().toString("HH:mm")
         self.meeting_data = {
             "title": self.topic_input.text(),
-            "date": self.date_input.date().toString("dd.MM.yyyy"),
+            "date": self.date_input.date().toString("yyyy-MM-dd"),  # Формат для SQL
             "time": self.time_input.time().toString("HH:mm"),
-            "duration": duration,  # Сохраняем длительность в формате числа
+            "duration": duration,
             "description": self.topics_input.toPlainText(),
             "participants": self.participants_input.get_selected_items(),
         }
-        super().accept()
+
+        # Асинхронное сохранение данных
+        async def save_and_close():
+            success = await self.save_meeting_to_db()
+            if success:
+                QMessageBox.information(self, "Успех", "Совещание успешно сохранено!")
+                self.accept()
+            else:
+                QMessageBox.critical(self, "Ошибка", "Не удалось сохранить совещание.")
+
+        asyncio.create_task(save_and_close())
 
     def populate_summary_page(self):
         """Заполнить страницу информации данными о совещании."""
