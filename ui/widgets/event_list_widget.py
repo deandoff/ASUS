@@ -119,6 +119,6 @@ class EventListWidget(QWidget):
     def show_event_details(self, item):
         """Вызывается при выборе элемента списка и передает его данные в сигнал."""
         row = self.events_list.row(item)
-        if row >= 0 and row < len(self.events):
+        if 0 <= row < len(self.events):
             event = self.events[row]
             self.event_selected.emit(event)

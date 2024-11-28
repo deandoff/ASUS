@@ -10,7 +10,7 @@ from ui.dialogs.add_question_dialog import AddQuestionDialog
 
 
 class CreateMeetingWizard(QDialog):
-    def __init__(self):
+    def __init__(self, user_data):
         super().__init__()
 
         self.setWindowTitle('Новое совещание')
@@ -199,7 +199,6 @@ class CreateMeetingWizard(QDialog):
         layout = QVBoxLayout(self.topics_page)
 
         self.topics_input = QTextEdit()
-        self.topics_input.setReadOnly(True)
         layout.addWidget(QLabel("Вопросы совещания:"))
         layout.addWidget(self.topics_input)
 
@@ -271,6 +270,7 @@ class CreateMeetingWizard(QDialog):
                                                     padding: 5px;}""")
             error_window.exec_()
             return
+
 
         if self.current_page < self.stacked_widget.count() - 1:
             self.current_page += 1
