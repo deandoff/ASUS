@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         self.meetings = []
 
         self.status_bar = self.statusBar()
-        self.status_bar.showMessage(f"Добро пожаловать, {self.user_data['login']}!")
+        self.status_bar.showMessage(f"Добро пожаловать!")
 
         # Настройка вкладок
         tabs = QTabWidget()
@@ -39,8 +39,7 @@ class MainWindow(QMainWindow):
 
         tabs.addTab(main_tab, "Главное")
         tabs.addTab(calendar_tab, "Календарь")
-        if user_data['role'] == "ADMIN":
-            tabs.addTab(AdminPanelWidget(), "Дополнительно")
+        tabs.addTab(AdminPanelWidget(), "Дополнительно")
 
         self.setStyleSheet("""
             QMainWindow {

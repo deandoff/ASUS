@@ -5,13 +5,19 @@ from PySide6.QtWidgets import (
     QTimeEdit, QCheckBox, QComboBox, QListWidget, QTextEdit, QLabel, QMessageBox,
 )
 
+import psycopg2
+
 from ui.support.searchable_multi_select import SearchableMultiSelect
 from ui.dialogs.add_question_dialog import AddQuestionDialog
 
+db_url = "dbname=postgres user=postgres password=postgres host=localhost port=5432"
 
 class CreateMeetingWizard(QDialog):
     def __init__(self, user_data):
         super().__init__()
+
+        self.user_data = user_data
+        self.secretary_input = 2
 
         self.setWindowTitle('Новое совещание')
         self.setGeometry(300, 200, 700, 600)
@@ -295,6 +301,80 @@ class CreateMeetingWizard(QDialog):
             "description": self.topics_input.toPlainText(),
             "participants": self.participants_input.get_selected_items(),
         }
+
+        try:
+            # Соединение с базой данных
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
+
+            # Сохранение информации о совещании
+            cursor.execute("""
+                INSERT INTO Meetings (creator_id, secretary_id, theme)
+                VALUES (%s, %s, %s) RETURNING id
+            """, (
+                self.user_data["id"],  # ID создателя совещания
+                self.secretary_input,  # Предполагаем, что индексы связаны с ID пользователей
+                self.topic_input.text()
+            ))
+            meeting_id = cursor.fetchone()[0]
+
+            # Сохранение данных в таблице Calendar
+            cursor.execute("""
+                INSERT INTO Calendar (meeting_id, date, time, duration)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                meeting_id,
+                self.date_input.date().toString("yyyy-MM-dd"),
+                self.time_input.time().toString("HH:mm:ss"),
+                self.duration_input.time().toString("HH:mm:ss"),
+            ))
+
+            # Сохранение участников совещания
+            participants = self.participants_input.get_selected_items()
+            for participant in participants:
+                # Используем индексы участников в списке как ID пользователей
+                participant_id = participants.index(participant) + 1
+                cursor.execute("""
+                    INSERT INTO Participant (meeting_id, id_from_users)
+                    VALUES (%s, %s)
+                """, (meeting_id, participant_id))
+
+            # Сохранение внешних участников
+            if self.additional_participants_checkbox.isChecked():
+                external_participants = [item.text() for item in self.external_participants_input.selectedItems()]
+                for external_participant in external_participants:
+                    # Используем индексы как временные ID пользователей
+                    external_id = external_participants.index(external_participant) + 1
+                    cursor.execute("""
+                        INSERT INTO Guest (meeting_id, id_from_users)
+                        VALUES (%s, %s)
+                    """, (meeting_id, external_id))
+
+            # Сохранение вопросов совещания
+            questions = self.topics_input.toPlainText().strip().split("\n")
+            for question in questions:
+                question_text = question.split("\n")[0].replace("Вопрос: ", "").strip()
+                responder_id = 1  # Пример: заменить на реальное связывание по имени
+                file_path = ""  # Пример: добавить логику для реального файла
+                cursor.execute("""
+                    INSERT INTO Question (meeting_id, question_text, responder_id, file)
+                    VALUES (%s, %s, %s, %s)
+                """, (meeting_id, question_text, responder_id, file_path))
+
+            conn.commit()  # Подтверждение транзакции
+        except Exception as e:
+            conn.rollback()  # Откат транзакции в случае ошибки
+            error_window = QMessageBox()
+            error_window.setWindowTitle("Ошибка")
+            error_window.setText(f"Ошибка сохранения данных: {e}")
+            error_window.setStandardButtons(QMessageBox.Ok)
+            error_window.exec_()
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
         super().accept()
 
     def populate_summary_page(self):

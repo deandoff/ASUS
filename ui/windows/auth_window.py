@@ -1,11 +1,10 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, \
-    QMessageBox
+import psycopg2
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from PySide6.QtCore import Qt
-import asyncpg
-import asyncio
 
 from ui.windows.main_window import MainWindow
 
+db_url = "dbname=postgres user=postgres password=postgres host=localhost port=5432"
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -80,97 +79,54 @@ class LoginWindow(QMainWindow):
 
         self.central_widget.setLayout(layout)
 
-        self.user_data = None
-
     def focus_on_password(self):
         self.input_password.setFocus()
 
     def handle_login(self):
         username = self.input_username.text()
         password = self.input_password.text()
-        asyncio.run(self.check_credentials(username, password))
 
-    async def check_credentials(self, username, password):
-        try:
-            # Подключение к базе данных
-            conn = await asyncpg.connect(
-                user="postgres",
-                password="postgres",
-                database="postgres",
-                host="localhost",
-                port="5432"
-            )
-
-            # Проверка пользователя в базе
-            query = "SELECT id, login, role FROM Users WHERE login = $1 AND password = $2"
-            result = await conn.fetchrow(query, username, password)
-
-
-
-            await conn.close()
-
-            if result:  # Если пользователь найден
-                self.user_data = {
-                    "id": result["id"],
-                    "login": result["login"],
-                    "role": result["role"]
-                }
-                self.close()
-                self.open_main_window()
-            else:
-                msg_box = QMessageBox()
-                msg_box.setWindowTitle("Ошибка авторизации")
-                msg_box.setText("Неверный логин и/или пароль")
-                msg_box.setStyleSheet('''
-                                   QMessageBox {
-                                       background-color: #F0FFFF;
-                                       color: black;
-                                       font-family: Roboto Slab;
-                                       font-size: 16px;
-                                   }
-                                   QPushButton {
-                                       background-color: black;
-                                       color: white;
-                                       border: 1px solid black;
-                                       border-radius: 5px;
-                                       padding: 5px;
-                                   }
-                                   QPushButton:hover {
-                                       background-color: #555;
-                                   }
-                               ''')
-                msg_box.setStandardButtons(QMessageBox.Ok)
-                msg_box.exec()
-                self.input_username.clear()
-                self.input_password.clear()
-
-        except asyncpg.PostgresError as e:
-            msg_box = QMessageBox()
-            msg_box.setWindowTitle("Ошибка авторизации")
-            msg_box.setText(f"Ошибка базы данных. {e}")
-            msg_box.setStyleSheet('''
-                               QMessageBox {
-                                   background-color: #F0FFFF;
-                                   color: black;
-                                   font-family: Roboto Slab;
-                                   font-size: 16px;
-                               }
-                               QPushButton {
-                                   background-color: black;
-                                   color: white;
-                                   border: 1px solid black;
-                                   border-radius: 5px;
-                                   padding: 5px;
-                               }
-                               QPushButton:hover {
-                                   background-color: #555;
-                               }
-                           ''')
-            msg_box.setStandardButtons(QMessageBox.Ok)
-            msg_box.exec()
+        user_data = self.check_credentials(username, password)
+        if user_data:
+            self.user_data = user_data
+            self.close()  # Закрываем окно авторизации
+            self.open_main_window()  # Открываем главное окно
+        else:
+            QMessageBox.critical(self, "Ошибка", "Неверный логин и/или пароль")
             self.input_username.clear()
             self.input_password.clear()
 
+    def check_credentials(self, username, password):
+        """
+        Проверяет, существует ли пользователь с заданным логином и паролем в базе данных.
+        Возвращает словарь с данными пользователя (id и role), если успех, иначе None.
+        """
+        DATABASE_URL = db_url
+
+        try:
+            # Подключение к базе данных
+            conn = psycopg2.connect(DATABASE_URL)
+            cursor = conn.cursor()
+
+            # Выполнение SQL-запроса
+            query = """
+                SELECT id, role FROM Users
+                WHERE login = %s AND password = %s
+            """
+            cursor.execute(query, (username, password))
+            user = cursor.fetchone()
+
+            # Закрытие соединения
+            cursor.close()
+            conn.close()
+
+            if user:
+                return {"id": user[0], "role": user[1]}
+            return None
+
+        except psycopg2.Error as e:
+            QMessageBox.critical(self, "Ошибка базы данных", f"Не удалось подключиться к базе данных:\n{e}")
+            return None
     def open_main_window(self):
         self.main_window = MainWindow(self.user_data)
         self.main_window.show()

@@ -32,10 +32,10 @@ class MainPageWidget(QWidget):
         self.main_info_layout.addWidget(self.brief_info)
 
         # Кнопки для создания и изменения совещания
-        if user_data['role'] == "ADMIN" or user_data['role'] == "CREATOR":
-            self.create_meeting_button = QPushButton("Создать совещание")
-            self.create_meeting_button.clicked.connect(self.create_meeting)
-            self.create_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
+
+        self.create_meeting_button = QPushButton("Создать совещание")
+        self.create_meeting_button.clicked.connect(self.create_meeting)
+        self.create_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
                                                  font-size: 17px; 
                                                  color: white; 
                                                  background-color: black; 
@@ -43,11 +43,11 @@ class MainPageWidget(QWidget):
                                                  border-radius: 10px; 
                                                  padding: 5px; 
             """)
-            self.main_info_layout.addWidget(self.create_meeting_button)
+        self.main_info_layout.addWidget(self.create_meeting_button)
 
-            self.update_meeting_button = QPushButton("Изменить совещание")
-            self.update_meeting_button.clicked.connect(self.update_meeting)
-            self.update_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
+        self.update_meeting_button = QPushButton("Изменить совещание")
+        self.update_meeting_button.clicked.connect(self.update_meeting)
+        self.update_meeting_button.setStyleSheet("""font-family: Roboto Slab; 
                                                          font-size: 17px; 
                                                          color: white; 
                                                          background-color: black; 
@@ -55,7 +55,7 @@ class MainPageWidget(QWidget):
                                                          border-radius: 10px; 
                                                          padding: 5px; 
                     """)
-            self.main_info_layout.addWidget(self.update_meeting_button)
+        self.main_info_layout.addWidget(self.update_meeting_button)
 
         # Добавление основного контейнера с BriefInfo и кнопками в основное окно
         self.layout.addLayout(self.main_info_layout, 2)

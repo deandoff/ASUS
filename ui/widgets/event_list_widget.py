@@ -5,6 +5,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem
 from PySide6.QtCore import QSize, Qt, QTimer, QTime, QDate
 from plyer import notification
 
+import psycopg2
+db_url = "dbname=postgres user=postgres password=postgres host=localhost port=5432"
+
 
 class EventListWidget(QWidget):
     event_selected = Signal(dict)  # Сигнал, передающий данные выбранного события
@@ -79,31 +82,55 @@ class EventListWidget(QWidget):
 
     def populate_events(self):
         self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
         self.events_list.clear()
 
         window_height = self.height()
         item_height = 140
         visible_items_count = int(window_height // item_height)
 
-        events_to_display = self.events[:visible_items_count]
+        try:
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
 
+            cursor.execute("""
+                SELECT 
+                    m.id AS meeting_id,
+                    m.theme,
+                    c.date,
+                    c.time
+                FROM 
+                    Meetings m
+                JOIN 
+                    Calendar c ON m.id = c.meeting_id;
+            """)
+            events = cursor.fetchall()
+        except Exception as e:
+            print(e)
+            return
+
+        # Ограничиваем количество событий, которые нужно отобразить
+        events_to_display = events[:visible_items_count]
+        print(events_to_display)
         for event in events_to_display:
+            meeting_id, theme, date, time = event  # Распаковка данных из кортежа
+
+            print(meeting_id, theme, date, time)  # Вывод в консоль для отладки
+
             item_widget = QWidget()
             item_layout = QVBoxLayout()
             item_layout.setContentsMargins(10, 10, 10, 10)
 
-            date_label = QLabel(f"<b>{event['date']}</b>")
+            date_label = QLabel(f"<b>{date}</b>")
             date_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
             date_label.setStyleSheet("color: #6c757d; font-size: 14px;")
             item_layout.addWidget(date_label)
 
-            title_label = QLabel(event["title"])
+            title_label = QLabel(theme)
             title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
             title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #212529;")
             item_layout.addWidget(title_label)
 
-            time_label = QLabel(f"<b>{event['time']}</b>")
+            time_label = QLabel(f"<b>{time}</b>")
             time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
             time_label.setStyleSheet("color: #495057; font-size: 14px;")
             item_layout.addWidget(time_label)
