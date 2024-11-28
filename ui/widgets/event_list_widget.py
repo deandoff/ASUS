@@ -82,7 +82,7 @@ class EventListWidget(QWidget):
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            if user_role == "admin":
+            if user_role == "ADMIN":
                 # Администратор видит все совещания
                 cursor.execute("""
                     SELECT 
@@ -148,7 +148,7 @@ class EventListWidget(QWidget):
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            if user_role == "admin":
+            if user_role == "ADMIN":
                 # Администратор видит все совещания
                 cursor.execute("""
                     SELECT 
@@ -242,7 +242,7 @@ class EventListWidget(QWidget):
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            if user_role == "admin":
+            if user_role == "ADMIN":
                 # Администратор видит все совещания
                 cursor.execute("""
                     SELECT 
