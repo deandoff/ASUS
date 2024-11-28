@@ -113,7 +113,8 @@ class CreateMeetingWizard(QDialog):
                         padding: 8px;
                         margin: 5px;
                         border-radius: 4px;} """)
-
+        self.responder_id = 0
+        self.question =None
 
     def on_time_changed(self, time):
         """Автоматическая корректировка времени на ближайшее кратное 15 минутам (в меньшую сторону)."""
@@ -347,7 +348,6 @@ class CreateMeetingWizard(QDialog):
                 self.topic_input.text()
             ))
             meeting_id = cursor.fetchone()[0]
-
             # Сохранение данных в таблице Calendar
             cursor.execute("""
                 INSERT INTO Calendar (meeting_id, date, time, duration)
@@ -389,17 +389,10 @@ class CreateMeetingWizard(QDialog):
                         VALUES (%s, %s)
                     """, (meeting_id, external_id))
 
-            # Сохранение вопросов совещания
-            questions = self.topics_input.toPlainText().strip().split("\n")
-            for question in questions:
-                question_text = question.split("\n")[0].replace("Вопрос: ", "").strip()
-                responder_id = 1  # Пример: заменить на реальное связывание по имени
-                file_path = ""  # Пример: добавить логику для реального файла
-                if question_text != "":
-                    cursor.execute("""
-                        INSERT INTO Question (meeting_id, question_text, responder_id, file)
-                        VALUES (%s, %s, %s, %s)
-                    """, (meeting_id, question_text, responder_id, file_path))
+            cursor.execute("""
+                                INSERT INTO Question (meeting_id, question_text, responder_id, file)
+                                VALUES (%s, %s, %s, %s)
+                            """, (meeting_id, self.question['text'], self.responder_id, self.question['files']))
 
             conn.commit()  # Подтверждение транзакции
         except Exception as e:
@@ -450,7 +443,11 @@ class CreateMeetingWizard(QDialog):
     def add_question(self):
         dialog = AddQuestionDialog(self)
         if dialog.exec() == QDialog.Accepted:
-            question = dialog.get_question_data()
+            self.question = dialog.get_question_data()
+
+            # Получаем ID ответчика
+            self.responder_id = self.question['responder_id']
+            # Добавляем вопрос в текстовое поле
             self.topics_input.append(
-                f"\tВопрос: {question['text']}\n\tОтветчик: {question['responder']}\n\tПрикреплённые файлы: {question['files']}\n"
+                f"\tВопрос: {self.question['text']}\n\tОтветчик: {self.question['responder']} (ID: {self.responder_id})\n\tПрикреплённые файлы: {self.question['files']}\n"
             )
