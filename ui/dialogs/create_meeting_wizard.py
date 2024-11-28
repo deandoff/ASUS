@@ -395,10 +395,11 @@ class CreateMeetingWizard(QDialog):
                 question_text = question.split("\n")[0].replace("Вопрос: ", "").strip()
                 responder_id = 1  # Пример: заменить на реальное связывание по имени
                 file_path = ""  # Пример: добавить логику для реального файла
-                cursor.execute("""
-                    INSERT INTO Question (meeting_id, question_text, responder_id, file)
-                    VALUES (%s, %s, %s, %s)
-                """, (meeting_id, question_text, responder_id, file_path))
+                if question_text != "":
+                    cursor.execute("""
+                        INSERT INTO Question (meeting_id, question_text, responder_id, file)
+                        VALUES (%s, %s, %s, %s)
+                    """, (meeting_id, question_text, responder_id, file_path))
 
             conn.commit()  # Подтверждение транзакции
         except Exception as e:

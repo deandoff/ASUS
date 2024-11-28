@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
 
         # Создание вкладок
         main_tab = MainPageWidget(self.meetings, self.status_bar, self.user_data)
-        calendar_tab = CalendarWidget(self.meetings)
+        calendar_tab = CalendarWidget(self.user_data)
 
         # Передача ссылки на календарь в MainPageWidget
         main_tab.calendar_widget = calendar_tab

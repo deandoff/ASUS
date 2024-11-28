@@ -135,7 +135,6 @@ class InvitationsWidget(QWidget):
 
                 if meeting_id_row is not None:
                     meeting_id = meeting_id_row[0]  # Извлекаем meeting_id
-                    print(f"Meeting ID: {meeting_id}")  # Отладочная информация
 
                     # Обновляем статус участника
                     update_query = """
@@ -145,12 +144,6 @@ class InvitationsWidget(QWidget):
                         AND id_from_users = %s;
                     """
                     cursor.execute(update_query, (status, meeting_id, self.user_id))
-
-                    # Проверяем, сколько строк было обновлено
-                    if cursor.rowcount == 0:
-                        print("Статус участника не обновлен. Проверьте, существует ли запись.")
-                    else:
-                        print("Статус участника обновлен.")
 
                     # Удаляем приглашение
                     delete_query = "DELETE FROM invitations WHERE id = %s;"

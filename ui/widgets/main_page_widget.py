@@ -18,7 +18,7 @@ class MainPageWidget(QWidget):
         self.layout = QHBoxLayout()
 
         # Создание и добавление виджета с событиями
-        self.events_widget = EventListWidget(self.meetings)
+        self.events_widget = EventListWidget(self.meetings, self.user_data)
         self.layout.addWidget(self.events_widget, 3)
 
         # Подключение сигнала выбора события к методу обновления BriefInfoWidget
@@ -74,7 +74,7 @@ class MainPageWidget(QWidget):
 
             # Обновить календарь
             if self.calendar_widget:
-                self.calendar_widget.update_meetings(self.meetings)
+                self.calendar_widget.fetch_meetings()
 
             QMessageBox.information(self, "Успех", "Совещание успешно создано!")
 
