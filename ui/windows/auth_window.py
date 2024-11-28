@@ -117,12 +117,12 @@ class LoginWindow(QMainWindow):
             """
             cursor.execute(query, (username, password))
             user = cursor.fetchone()
-            self.user_data = {"id": user[0], "role": user[1]}
             # Закрытие соединения
             cursor.close()
             conn.close()
 
             if user:
+                self.user_data = {"id": user[0], "role": user[1]}
                 return {"id": user[0], "role": user[1]}
             return None
 

@@ -89,6 +89,7 @@ class CreateMeetingWizard(QDialog):
     def __init__(self, user_data):
         super().__init__()
 
+        self.question_files = None
         self.user_data = user_data
 
         self.user_id_dict = get_users_from_db()
@@ -101,6 +102,7 @@ class CreateMeetingWizard(QDialog):
 
         self.current_page = 0
         self.meeting_data = {}
+        self.question_data = []
 
         self.page_was_created = False
         self.additional_page_index = None
@@ -463,11 +465,15 @@ class CreateMeetingWizard(QDialog):
                             INSERT INTO Guest (meeting_id, id_from_users)
                             VALUES (%s, %s)
                         """, (meeting_id, guest_id))
-
-            cursor.execute("""
-                                INSERT INTO Question (meeting_id, question_text, responder_id, file)
-                                VALUES (%s, %s, %s, %s)
-                            """, (meeting_id, self.question['text'], self.responder_id, self.question['files']))
+            for question in self.question_data:
+                print(question)
+                self.responder_id = question['responder_id']
+                self.question_files = question['files']
+                print(self.responder_id)
+                cursor.execute("""
+                                    INSERT INTO Question (meeting_id, question_text, responder_id, file)
+                                    VALUES (%s, %s, %s, %s)
+                                """, (meeting_id, question['text'], self.responder_id, self.question_files))
 
             conn.commit()  # Подтверждение транзакции
         except Exception as e:
@@ -519,10 +525,10 @@ class CreateMeetingWizard(QDialog):
         dialog = AddQuestionDialog(self)
         if dialog.exec() == QDialog.Accepted:
             self.question = dialog.get_question_data()
-
             # Получаем ID ответчика
             self.responder_id = self.question['responder_id']
             # Добавляем вопрос в текстовое поле
             self.topics_input.append(
                 f"\tВопрос: {self.question['text']}\n\tОтветчик: {self.question['responder']} (ID: {self.responder_id})\n\tПрикреплённые файлы: {self.question['files']}\n"
             )
+            self.question_data.append(self.question)
