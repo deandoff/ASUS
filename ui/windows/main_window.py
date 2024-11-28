@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
 )
 
+from ui.widgets.invitations_widget import InvitationsWidget
 from ui.widgets.main_page_widget import MainPageWidget
 from ui.widgets.admin_panel_widget import AdminPanelWidget
 from ui.widgets.meeting_calendar_widget import CalendarWidget
@@ -40,6 +41,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(main_tab, "Главное")
         tabs.addTab(calendar_tab, "Календарь")
         tabs.addTab(AdminPanelWidget(), "Дополнительно")
+        tabs.addTab(InvitationsWidget(self.user_data['id']), "Приглашения")
 
         self.setStyleSheet("""
             QMainWindow {

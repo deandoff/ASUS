@@ -1,5 +1,4 @@
 from PySide6.QtCore import QDate, QTime
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog, QStackedWidget, QPushButton, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QDateEdit,
     QTimeEdit, QCheckBox, QComboBox, QListWidget, QTextEdit, QLabel, QMessageBox,
@@ -12,12 +11,38 @@ from ui.dialogs.add_question_dialog import AddQuestionDialog
 
 db_url = "dbname=postgres user=postgres password=postgres host=localhost port=5432"
 
+
+def get_users_from_db():
+    try:
+        # Соединение с базой данных
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+
+        # Запрос для получения всех пользователей
+        cursor.execute("SELECT id, login FROM Users where role = 'USER'")
+        users = cursor.fetchall()  # Получаем все результаты
+
+        # Возвращаем словарь с логинами и соответствующими ID пользователей
+        return {user[1]: user[0] for user in users}
+
+    except Exception as e:
+        print(f"Ошибка при подключении к базе данных: {e}")
+        return {}
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 class CreateMeetingWizard(QDialog):
     def __init__(self, user_data):
         super().__init__()
 
         self.user_data = user_data
         self.secretary_input = 2
+        self.user_id_dict = get_users_from_db()
 
         self.setWindowTitle('Новое совещание')
         self.setGeometry(300, 200, 700, 600)
@@ -89,6 +114,7 @@ class CreateMeetingWizard(QDialog):
                         margin: 5px;
                         border-radius: 4px;} """)
 
+
     def on_time_changed(self, time):
         """Автоматическая корректировка времени на ближайшее кратное 15 минутам (в меньшую сторону)."""
         if time.minute() % 15 != 0:
@@ -121,16 +147,20 @@ class CreateMeetingWizard(QDialog):
         self.duration_input.timeChanged.connect(self.on_duration_changed)
         layout.addRow("Длительность (ч):", self.duration_input)
 
+        users = get_users_from_db()
+
         self.participants_input = SearchableMultiSelect(
-            items=["Иванов И.И.", "Петров П.П.", "Сидоров С.С.", "Александров А.А.", "Викторов В.В."]
+            items=users
         )
         layout.addRow("Участники:", self.participants_input)
+
 
         self.additional_participants_checkbox = QCheckBox("Дополнительные участники")
         self.additional_participants_checkbox.stateChanged.connect(self.on_additional_participants_toggled)
         layout.addRow(self.additional_participants_checkbox)
 
         self.stacked_widget.addWidget(self.main_page)
+
 
     def on_duration_changed(self, time):
         """Автоматическая корректировка длительности на ближайшее кратное 15 минутам."""
@@ -297,7 +327,7 @@ class CreateMeetingWizard(QDialog):
             "title": self.topic_input.text(),
             "date": self.date_input.date().toString("dd.MM.yyyy"),
             "time": self.time_input.time().toString("HH:mm"),
-            "duration": duration,  # Сохраняем длительность в формате числа
+            "duration": duration,
             "description": self.topics_input.toPlainText(),
             "participants": self.participants_input.get_selected_items(),
         }
@@ -329,22 +359,31 @@ class CreateMeetingWizard(QDialog):
                 self.duration_input.time().toString("HH:mm:ss"),
             ))
 
-            # Сохранение участников совещания
             participants = self.participants_input.get_selected_items()
+
+            # Добавление участников в таблицу Participant
             for participant in participants:
-                # Используем индексы участников в списке как ID пользователей
-                participant_id = participants.index(participant) + 1
-                cursor.execute("""
-                    INSERT INTO Participant (meeting_id, id_from_users)
-                    VALUES (%s, %s)
-                """, (meeting_id, participant_id))
+                participant_id = self.user_id_dict.get(participant)  # Получаем ID пользователя из словаря
+                if participant_id:
+                    cursor.execute("""
+                        INSERT INTO Participant (meeting_id, id_from_users)
+                        VALUES (%s, %s)
+                    """, (meeting_id, participant_id))
+
+            # Добавление приглашений в таблицу Invitations
+            for participant in participants:
+                participant_id = self.user_id_dict.get(participant)  # Получаем ID пользователя из словаря
+                if participant_id:
+                    cursor.execute("""
+                        INSERT INTO Invitations (meeting_id, user_id, status)
+                        VALUES (%s, %s, %s)
+                    """, (meeting_id, participant_id, 'invited'))
 
             # Сохранение внешних участников
             if self.additional_participants_checkbox.isChecked():
                 external_participants = [item.text() for item in self.external_participants_input.selectedItems()]
                 for external_participant in external_participants:
-                    # Используем индексы как временные ID пользователей
-                    external_id = external_participants.index(external_participant) + 1
+                    external_id = external_participants.index(external_participant)
                     cursor.execute("""
                         INSERT INTO Guest (meeting_id, id_from_users)
                         VALUES (%s, %s)
