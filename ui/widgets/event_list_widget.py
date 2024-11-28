@@ -1,5 +1,5 @@
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtCore import QTimer, QTime, QDate
 from plyer import notification
@@ -10,9 +10,10 @@ db_url = "dbname=postgres user=postgres password=postgres host=localhost port=54
 class EventListWidget(QWidget):
     event_selected = Signal(dict)  # Сигнал, передающий данные выбранного события
 
-    def __init__(self, events, parent=None):
+    def __init__(self, events, user_data, parent=None):
         super().__init__(parent)
 
+        self.user_data = user_data
         self.events = events  # Сохраняем события
         self.upcoming_event_timer = QTimer(self)  # Таймер для уведомлений
         self.upcoming_event_timer.timeout.connect(self.check_upcoming_events)
@@ -25,6 +26,18 @@ class EventListWidget(QWidget):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setFont(QFont('Roboto Slab', 14))
         self.layout.addWidget(self.title_label)
+
+        self.button = QPushButton("обновить")
+        self.button.clicked.connect(self.populate_events)
+        self.layout.addWidget(self.button)
+        self.button.setStyleSheet("""font-family: Roboto Slab; 
+                                                                 font-size: 17px; 
+                                                                 color: white; 
+                                                                 background-color: black; 
+                                                                 border: 2px solid black; 
+                                                                 border-radius: 10px; 
+                                                                 padding: 5px; 
+                            """)
 
         self.events_list = QListWidget()
         self.events_list.itemClicked.connect(self.show_event_details)
@@ -58,82 +71,56 @@ class EventListWidget(QWidget):
         self.populate_events()
         self.layout.addWidget(self.events_list)
 
-    def check_upcoming_events(self):
-        """Проверяет и уведомляет о ближайших событиях."""
-        today = QDate.currentDate()
-        now = QTime.currentTime()
-
-        try:
-            conn = psycopg2.connect(db_url)
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT 
-                    m.id AS meeting_id,
-                    m.theme,
-                    c.date,
-                    c.time
-                FROM 
-                    Meetings m
-                JOIN 
-                    Calendar c ON m.id = c.meeting_id
-                ORDER BY c.date ASC, c.time ASC;
-            """)
-            events = cursor.fetchall()
-
-            for event in events:
-                meeting_id, theme, date, time = event  # Извлекаем данные о совещании
-                # Преобразуем time в строку, если это необходимо
-                if isinstance(time, str):
-                    event_time = QTime.fromString(time, "HH:mm:ss")
-                else:
-                    # Если time - это объект time, преобразуем его в строку
-                    event_time = QTime.fromString(time.strftime("%H:%M:%S"), "HH:mm:ss")
-
-                event_date = QDate.fromString(date.strftime("%d.%m.%Y"), "dd.MM.yyyy")  # Преобразуем дату в строку
-                time_difference = now.secsTo(event_time) // 60  # Разница в минутах
-
-                # Уведомляем, если событие начинается через 15 минут
-                if event_date == today and 14 <= time_difference <= 15:
-                    event_data = {
-                        "id": meeting_id,
-                        "title": theme,
-                        "date": date,
-                        "time": time
-                    }
-                    self.send_notification(event_data)
-
-        except Exception as e:
-            print(e)
-
-    def send_notification(self, event):
-        """Отправляет уведомление через plyer."""
-        notification.notify(
-            title=f"Напоминание: {event['title']}",
-            message=f"Событие начнётся в {event['time']}.",
-            timeout=10  # Уведомление исчезнет через 10 секунд
-        )
-
     def populate_events(self):
         self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.events_list.clear()
         self.events = []  # Обнуляем список событий
+        user_id = self.user_data["id"]
+        user_role = self.user_data["role"]
+
         try:
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            cursor.execute("""
-                SELECT 
-                    m.id AS meeting_id,
-                    m.theme,
-                    c.date,
-                    c.time
-                FROM 
-                    Meetings m
-                JOIN 
-                    Calendar c ON m.id = c.meeting_id
-                ORDER BY c.date ASC, c.time ASC;
-            """)
+            if user_role == "ADMIN":
+                # Администратор видит все совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    ORDER BY c.date ASC, c.time ASC;
+                """)
+            else:
+                # Участники, организаторы, гости и секретари видят только свои совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    LEFT JOIN 
+                        Participant p ON m.id = p.meeting_id AND p.id_from_users = %s and p.status = 'accepted'
+                    LEFT JOIN 
+                        Creator cr ON m.id = cr.meeting_id AND cr.id_from_users = %s
+                    LEFT JOIN 
+                        Guest g ON m.id = g.meeting_id AND g.id_from_users = %s
+                    WHERE 
+                        p.id_from_users IS NOT NULL OR 
+                        cr.id_from_users IS NOT NULL OR 
+                        g.id_from_users IS NOT NULL
+                    ORDER BY c.date ASC, c.time ASC;
+                """, (user_id, user_id, user_id))
+
             events = cursor.fetchall()
         except Exception as e:
             print(e)
@@ -169,6 +156,85 @@ class EventListWidget(QWidget):
 
             self.events_list.addItem(list_item)
             self.events_list.setItemWidget(list_item, item_widget)
+
+    def check_upcoming_events(self):
+        """Проверяет и уведомляет о ближайших событиях."""
+        today = QDate.currentDate()
+        now = QTime.currentTime()
+        user_id = self.user_data["id"]
+        user_role = self.user_data["role"]
+
+        try:
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
+
+            if user_role == "admin":
+                # Администратор видит все совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    ORDER BY c.date ASC, c.time ASC;
+                """)
+            else:
+                # Участники, организаторы, гости и секретари видят только свои совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    LEFT JOIN 
+                        Participant p ON m.id = p.meeting_id AND p.id_from_users = %s and p.status = 'accepted'
+                    LEFT JOIN 
+                        Creator cr ON m.id = cr.meeting_id AND cr.id_from_users = %s
+                    LEFT JOIN 
+                        Guest g ON m.id = g.meeting_id AND g.id_from_users = %s
+                    WHERE 
+                        p.id_from_users IS NOT NULL OR 
+                        cr.id_from_users IS NOT NULL OR 
+                        g.id_from_users IS NOT NULL
+                    ORDER BY c.date ASC, c.time ASC;
+                """, (user_id, user_id, user_id))
+
+            events = cursor.fetchall()
+
+            for event in events:
+                meeting_id, theme, date, time = event  # Извлекаем данные о совещании
+                event_time = QTime.fromString(time.strftime("%H:%M:%S"), "HH:mm:ss")
+                event_date = QDate.fromString(date.strftime("%d.%m.%Y"), "dd.MM.yyyy")  # Преобразуем дату в строку
+                time_difference = now.secsTo(event_time) // 60  # Разница в минутах
+
+                # Уведомляем, если событие начинается через 15 минут
+                if event_date == today and 14 <= time_difference <= 15:
+                    event_data = {
+                        "id": meeting_id,
+                        "title": theme,
+                        "date": date,
+                        "time": time
+                    }
+                    self.send_notification(event_data)
+
+        except Exception as e:
+            print(e)
+
+    def send_notification(self, event):
+        """Отправляет уведомление через plyer."""
+        notification.notify(
+            title=f"Напоминание: {event['title']}",
+            message=f"Событие начнётся в {event['time']}.",
+            timeout=10  # Уведомление исчезнет через 10 секунд
+        )
 
     def show_event_details(self, item):
         """Вызывается при выборе элемента списка и передает его данные в сигнал."""

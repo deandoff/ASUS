@@ -10,6 +10,8 @@ class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.user_data = {}
+
         self.setWindowTitle("ASUS Authorization")
         self.setFixedSize(500, 300)
 
@@ -115,7 +117,7 @@ class LoginWindow(QMainWindow):
             """
             cursor.execute(query, (username, password))
             user = cursor.fetchone()
-
+            self.user_data = {"id": user[0], "role": user[1]}
             # Закрытие соединения
             cursor.close()
             conn.close()
