@@ -1,10 +1,9 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLabel
+from PySide6.QtGui import Qt, QFont
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QLabel, QTextEdit
 
 
 class BriefInfoWidget(QWidget):
-    def __init__(self, event, parent=None):
+    def __init__(self, event=None, parent=None):
         super(BriefInfoWidget, self).__init__(parent)
 
         self.layout = QVBoxLayout(self)
@@ -30,11 +29,10 @@ class BriefInfoWidget(QWidget):
             self.update_info(event)
 
     def update_info(self, event):
-        """Обновляет отображение краткой информации о выбранном событии."""
+        """Update the brief information display with the event details."""
         summary = f"""
             Тема: {event['title']}
             Дата: {event['date']}
             Время: {event['time']}
-            Описание: {event.get('description', 'Нет описания')}
         """
         self.summary_text.setText(summary)

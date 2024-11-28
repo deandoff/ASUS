@@ -81,13 +81,8 @@ class EventListWidget(QWidget):
         )
 
     def populate_events(self):
-        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.events_list.clear()
-
-        window_height = self.height()
-        item_height = 140
-        visible_items_count = int(window_height // item_height)
-
         try:
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
@@ -101,37 +96,33 @@ class EventListWidget(QWidget):
                 FROM 
                     Meetings m
                 JOIN 
-                    Calendar c ON m.id = c.meeting_id;
+                    Calendar c ON m.id = c.meeting_id
+                Order by c.date asc, c.time asc;
             """)
             events = cursor.fetchall()
         except Exception as e:
             print(e)
             return
 
-        # Ограничиваем количество событий, которые нужно отобразить
-        events_to_display = events[:visible_items_count]
-        print(events_to_display)
-        for event in events_to_display:
-            meeting_id, theme, date, time = event  # Распаковка данных из кортежа
-
-            print(meeting_id, theme, date, time)  # Вывод в консоль для отладки
+        for event in events:
+            meeting_id, theme, date, time = event  # Extract the description
 
             item_widget = QWidget()
             item_layout = QVBoxLayout()
             item_layout.setContentsMargins(10, 10, 10, 10)
 
             date_label = QLabel(f"<b>{date}</b>")
-            date_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
+            date_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
             date_label.setStyleSheet("color: #6c757d; font-size: 14px;")
             item_layout.addWidget(date_label)
 
             title_label = QLabel(theme)
-            title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
+            title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
             title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #212529;")
             item_layout.addWidget(title_label)
 
             time_label = QLabel(f"<b>{time}</b>")
-            time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Выравнивание по левому краю
+            time_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
             time_label.setStyleSheet("color: #495057; font-size: 14px;")
             item_layout.addWidget(time_label)
 
@@ -143,9 +134,17 @@ class EventListWidget(QWidget):
             self.events_list.addItem(list_item)
             self.events_list.setItemWidget(list_item, item_widget)
 
-    def show_event_details(self, item):
-        """Вызывается при выборе элемента списка и передает его данные в сигнал."""
-        row = self.events_list.row(item)
-        if 0 <= row < len(self.events):
-            event = self.events[row]
-            self.event_selected.emit(event)
+            # Create a dictionary with event details
+            event_details = {
+                "title": theme,
+                "date": date,
+                "time": time
+            }
+
+            # Connect the item clicked signal with the correct event data
+            self.events_list.itemClicked.connect(lambda item, event=event_details: self.show_event_details(item, event))
+
+    def show_event_details(self, item, event):
+        """Emit event details when an item is clicked."""
+        self.event_selected.emit(event)
+

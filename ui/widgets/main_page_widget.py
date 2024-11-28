@@ -67,9 +67,6 @@ class MainPageWidget(QWidget):
         """Открыть окно для создания совещания."""
         dialog = CreateMeetingWizard(self.user_data)
         if dialog.exec() == QDialog.Accepted:
-            meeting = dialog.meeting_data
-            self.meetings.append(meeting)
-            # Обновить виджет расписания с новыми данными
             self.events_widget.populate_events()
 
             # Обновить календарь
@@ -82,6 +79,6 @@ class MainPageWidget(QWidget):
         pass
 
     def update_brief_info(self, event):
-        """Обновляет краткую информацию при выборе события."""
+        """Update the brief information when an event is selected."""
         self.brief_info.update_info(event)
 
