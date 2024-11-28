@@ -71,10 +71,10 @@ class EventListWidget(QWidget):
         self.populate_events()
         self.layout.addWidget(self.events_list)
 
-    def populate_events(self):
-        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.events_list.clear()
-        self.events = []  # Обнуляем список событий
+    def check_upcoming_events(self):
+        """Проверяет и уведомляет о ближайших событиях."""
+        today = QDate.currentDate()
+        now = QTime.currentTime()
         user_id = self.user_data["id"]
         user_role = self.user_data["role"]
 
@@ -82,7 +82,7 @@ class EventListWidget(QWidget):
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            if user_role == "ADMIN":
+            if user_role == "admin":
                 # Администратор видит все совещания
                 cursor.execute("""
                     SELECT 
@@ -97,7 +97,7 @@ class EventListWidget(QWidget):
                     ORDER BY c.date ASC, c.time ASC;
                 """)
             else:
-                # Участники, организаторы, гости и секретари видят только свои совещания
+                # Участники видят только свои совещания
                 cursor.execute("""
                     SELECT 
                         m.id AS meeting_id,
@@ -109,22 +109,96 @@ class EventListWidget(QWidget):
                     JOIN 
                         Calendar c ON m.id = c.meeting_id
                     LEFT JOIN 
-                        Participant p ON m.id = p.meeting_id AND p.id_from_users = %s and p.status = 'accepted'
-                    LEFT JOIN 
-                        Creator cr ON m.id = cr.meeting_id AND cr.id_from_users = %s
-                    LEFT JOIN 
-                        Guest g ON m.id = g.meeting_id AND g.id_from_users = %s
+                        Participant p ON m.id = p.meeting_id AND p.id_from_users = %s AND p.status = 'accepted'
                     WHERE 
-                        p.id_from_users IS NOT NULL OR 
-                        cr.id_from_users IS NOT NULL OR 
-                        g.id_from_users IS NOT NULL
+                        p.id_from_users IS NOT NULL
                     ORDER BY c.date ASC, c.time ASC;
-                """, (user_id, user_id, user_id))
+                """, (user_id,))
 
             events = cursor.fetchall()
+
+            for event in events:
+                meeting_id, theme, date, time = event  # Извлекаем данные о совещании
+                event_time = QTime.fromString(time.strftime("%H:%M:%S"), "HH:mm:ss")
+                event_date = QDate.fromString(date.strftime("%Y-%m-%d"), "yyyy-MM-dd")  # Преобразуем дату в строку
+                time_difference = now.secsTo(event_time) // 60  # Разница в минутах
+
+                # Уведомляем, если событие начинается через 15 минут
+                if event_date == today and 14 <= time_difference <= 15:
+                    event_data = {
+                        "id": meeting_id,
+                        "title": theme,
+                        "date": date,
+                        "time": time
+                    }
+                    self.send_notification(event_data)
+
+        except Exception as e:
+            print(e)
+
+    def populate_events(self):
+        """Заполняет список событий для отображения."""
+        self.events_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.events_list.clear()
+        self.events = []  # Обнуляем список событий
+        user_id = self.user_data["id"]
+        user_role = self.user_data["role"]
+
+        try:
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
+
+            if user_role == "admin":
+                # Администратор видит все совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    ORDER BY c.date ASC, c.time ASC;
+                """)
+            else:
+                # Участники видят только свои совещания
+                cursor.execute("""
+                    SELECT 
+                        m.id AS meeting_id,
+                        m.theme,
+                        c.date,
+                        c.time
+                    FROM 
+                        Meetings m
+                    JOIN 
+                        Calendar c ON m.id = c.meeting_id
+                    LEFT JOIN 
+                        Participant p ON m.id = p.meeting_id AND p.id_from_users = %s AND p.status = 'accepted'
+                    WHERE 
+                        p.id_from_users IS NOT NULL
+                    ORDER BY c.date ASC, c.time ASC;
+                """, (user_id,))
+
+            events = cursor.fetchall()
+            for event in events:
+                meeting_id, theme, date, time = event
+                self.events.append({
+                    "id": meeting_id,
+                    "theme": theme,
+                    "date": date,
+                    "time": time
+                })
+
         except Exception as e:
             print(e)
             return
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
 
         for event in events:
             meeting_id, theme, date, time = event  # Извлекаем данные о совещании
@@ -196,8 +270,6 @@ class EventListWidget(QWidget):
                         Calendar c ON m.id = c.meeting_id
                     LEFT JOIN 
                         Participant p ON m.id = p.meeting_id AND p.id_from_users = %s and p.status = 'accepted'
-                    LEFT JOIN 
-                        Creator cr ON m.id = cr.meeting_id AND cr.id_from_users = %s
                     LEFT JOIN 
                         Guest g ON m.id = g.meeting_id AND g.id_from_users = %s
                     WHERE 

@@ -35,6 +35,5 @@ class BriefInfoWidget(QWidget):
             Тема: {event['title']}
             Дата: {event['date']}
             Время: {event['time']}
-            Описание: {event.get('description', 'Нет описания')}
         """
         self.summary_text.setText(summary)

@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QLabel, QComboBox, QPushButton, QHBoxLayout, QFileDialog
 
-
 class AddQuestionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
