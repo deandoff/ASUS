@@ -12,6 +12,55 @@ from ui.dialogs.add_question_dialog import AddQuestionDialog
 db_url = "dbname=postgres user=postgres password=postgres host=localhost port=5432"
 
 
+def get_external_guests_from_db():
+    """Получение списка гостей с ролью 'GUEST' из базы данных."""
+    try:
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id, login FROM Users WHERE role = 'GUEST'")
+        guests = cursor.fetchall()
+
+        # Возвращаем список гостей с ID и логинами
+        return [{"id": guest[0], "login": guest[1]} for guest in guests]
+
+    except Exception as e:
+        print(f"Ошибка при подключении к базе данных: {e}")
+        return []
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+def get_secretaries_from_db():
+    """
+    Возвращает словарь с секретарями из базы данных.
+    Ключи - логины, значения - их ID.
+    """
+    try:
+        # Соединение с базой данных
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
+
+        # Запрос для получения секретарей
+        cursor.execute("SELECT id, login FROM Users WHERE role = 'SECRETARY'")
+        secretaries = cursor.fetchall()
+
+        # Возвращаем словарь с логинами и соответствующими ID пользователей
+        return {secretary[1]: secretary[0] for secretary in secretaries}
+
+    except Exception as e:
+        print(f"Ошибка при подключении к базе данных: {e}")
+        return {}
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 def get_users_from_db():
     try:
         # Соединение с базой данных
@@ -41,8 +90,10 @@ class CreateMeetingWizard(QDialog):
         super().__init__()
 
         self.user_data = user_data
-        self.secretary_input = 2
+
         self.user_id_dict = get_users_from_db()
+        self.secretary_id_dict = get_secretaries_from_db()
+        self.external_guests_id_dict = get_external_guests_from_db()
 
         self.setWindowTitle('Новое совещание')
         self.setGeometry(300, 200, 700, 600)
@@ -206,22 +257,21 @@ class CreateMeetingWizard(QDialog):
         self.additional_page = QWidget()
         layout = QFormLayout(self.additional_page)
 
-        self.chairperson_input = QComboBox()
-        self.chairperson_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
-        layout.addRow("Председатель:", self.chairperson_input)
+        # Получение списка секретарей
+        secretaries = get_secretaries_from_db()
 
+        # Используем SearchableMultiSelect или выпадающий список для выбора секретаря
         self.secretary_input = QComboBox()
-        self.secretary_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
+        self.secretary_dict = secretaries  # Сохраняем словарь для последующего использования
+        self.secretary_input.addItems(secretaries.keys())
         layout.addRow("Секретарь:", self.secretary_input)
 
-        self.controller_input = QComboBox()
-        self.controller_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
-        layout.addRow("Контролёр:", self.controller_input)
-
-        self.external_participants_input = QListWidget()
-        self.external_participants_input.setSelectionMode(QListWidget.MultiSelection)
-        self.external_participants_input.addItems(["Иванов И.И.", "Петров П.П.", "Сидоров С.С."])
-        layout.addRow("Внешние участники:", self.external_participants_input)
+        # Получение списка гостей
+        external_guests = get_external_guests_from_db()
+        self.external_guests_input = SearchableMultiSelect(
+            items={guest["login"]: guest["id"] for guest in external_guests}
+        )
+        layout.addRow("Гости:", self.external_guests_input)
 
         self.stacked_widget.addWidget(self.additional_page)
         self.additional_page_index = self.stacked_widget.indexOf(self.additional_page)
@@ -332,20 +382,44 @@ class CreateMeetingWizard(QDialog):
             "participants": self.participants_input.get_selected_items(),
         }
 
+
         try:
             # Соединение с базой данных
             conn = psycopg2.connect(db_url)
             cursor = conn.cursor()
 
-            # Сохранение информации о совещании
-            cursor.execute("""
-                INSERT INTO Meetings (creator_id, secretary_id, theme)
-                VALUES (%s, %s, %s) RETURNING id
-            """, (
+            # Подготовка данных для вставки в таблицу Meetings
+            insert_meeting_query = """
+                INSERT INTO Meetings (creator_id, theme
+            """
+            values = [
                 self.user_data["id"],  # ID создателя совещания
-                self.secretary_input,  # Предполагаем, что индексы связаны с ID пользователей
                 self.topic_input.text()
-            ))
+            ]
+
+            # Проверка, если выбраны дополнительные участники, добавляем секретаря в запрос
+            if self.additional_participants_checkbox.isChecked():
+                insert_meeting_query += ", secretary_id"
+                # Получаем ID секретаря из выбранного значения
+                selected_secretary = self.secretary_input.currentText()
+                if selected_secretary:  # Если секретарь выбран
+                    secretary_id = self.secretary_id_dict.get(selected_secretary)
+                    print(secretary_id)
+
+                # Добавляем только если выбран секретарь
+                if secretary_id:
+                    values.append(secretary_id)  # Добавляем секретаря в значения
+                else:
+                    values.append(None)  # Если секретарь не выбран, вставляем None (null)
+
+            insert_meeting_query += ") VALUES (%s, %s"  # Основные параметры
+            if secretary_id is not None:
+                insert_meeting_query += ", %s"  # Добавляем параметр для секретаря
+
+            insert_meeting_query += ") RETURNING id"
+
+            # Вставка данных о совещании
+            cursor.execute(insert_meeting_query, tuple(values))
             meeting_id = cursor.fetchone()[0]
 
             # Сохранение данных в таблице Calendar
@@ -359,7 +433,7 @@ class CreateMeetingWizard(QDialog):
                 self.duration_input.time().toString("HH:mm:ss"),
             ))
 
-            participants = self.participants_input.get_selected_items()
+            participants = self.participants_input.get_selected_items()  # Получение участников
 
             # Добавление участников в таблицу Participant
             for participant in participants:
@@ -379,15 +453,16 @@ class CreateMeetingWizard(QDialog):
                         VALUES (%s, %s, %s)
                     """, (meeting_id, participant_id, 'invited'))
 
-            # Сохранение внешних участников
+            # Сохранение внешних гостей
             if self.additional_participants_checkbox.isChecked():
-                external_participants = [item.text() for item in self.external_participants_input.selectedItems()]
-                for external_participant in external_participants:
-                    external_id = external_participants.index(external_participant)
-                    cursor.execute("""
-                        INSERT INTO Guest (meeting_id, id_from_users)
-                        VALUES (%s, %s)
-                    """, (meeting_id, external_id))
+                guests = self.external_guests_input.get_selected_items()  # Получаем выбранных гостей
+                for guest in guests:
+                    guest_id = self.user_id_dict.get(guest)
+                    if guest_id:
+                        cursor.execute("""
+                            INSERT INTO Guest (meeting_id, id_from_users)
+                            VALUES (%s, %s)
+                        """, (meeting_id, guest_id))
 
             # Сохранение вопросов совещания
             questions = self.topics_input.toPlainText().strip().split("\n")
@@ -432,15 +507,15 @@ class CreateMeetingWizard(QDialog):
             Дополнительные участники: {"Да" if self.additional_participants_checkbox.isChecked() else "Нет"}
         """
 
-        # Если выбраны дополнительные участники, добавим их информацию
-        if self.additional_participants_checkbox.isChecked() and self.external_participants_input:
-            external_participants = ", ".join(
-                [item.text() for item in self.external_participants_input.selectedItems()])
+        # Проверяем наличие дополнительных участников
+        if self.additional_participants_checkbox.isChecked():
+            external_participants = ""
+            if hasattr(self, 'external_guests_input') and self.external_guests_input:  # Проверка существования
+                external_participants = ", ".join(self.external_guests_input.get_selected_items())
+            secretary = self.secretary_input.currentText() if self.secretary_input else "Не выбран"
             summary += f"""
-                Председатель: {self.chairperson_input.currentText()}
-                Секретарь: {self.secretary_input.currentText()}
-                Контролёр: {self.controller_input.currentText()}
-                Внешние участники: {external_participants}
+                Секретарь: {secretary}
+                Внешние участники: {external_participants or "Нет"}
             """
 
         # Устанавливаем итоговый текст в виджет

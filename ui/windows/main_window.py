@@ -40,7 +40,8 @@ class MainWindow(QMainWindow):
 
         tabs.addTab(main_tab, "Главное")
         tabs.addTab(calendar_tab, "Календарь")
-        tabs.addTab(AdminPanelWidget(), "Дополнительно")
+        if self.user_data['role'] == "ADMIN":
+            tabs.addTab(AdminPanelWidget(), "Дополнительно")
         tabs.addTab(InvitationsWidget(self.user_data['id']), "Приглашения")
 
         self.setStyleSheet("""
